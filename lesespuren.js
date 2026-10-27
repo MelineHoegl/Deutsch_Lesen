@@ -9,6 +9,16 @@
 
 const LESESPUREN = [
   {
+    titel: "Der verschwundene Kürbis",
+    datei: "lesespuren/der-verschwundene-kuerbis.html",
+    thema: "Halloween an der Schule",
+    fach: "Deutsch",
+    text: "Kurz vor dem Kürbiswettbewerb ist Kurt verschwunden! Folge der Spur durch die ganze Schule.",
+    bild: "🎃",
+    stufen: ["■", "▲", "●"],
+    neu: true,
+  },
+  {
     titel: "Das verschwundene Schwert",
     datei: "lesespuren/das-verschwundene-schwert.html",
     thema: "Mittelalter – Ritter und Burg",
@@ -16,6 +26,5 @@ const LESESPUREN = [
     text: "Knappe Rakan soll Ritter werden – doch sein Schwert ist weg! Folge der Spur durch die Burg.",
     bild: "🏰",
     stufen: ["■", "▲", "●"],
-    neu: true,
   },
 ];
