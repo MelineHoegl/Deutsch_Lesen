@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Lesespuren</title>
+<style>
+:root{--ink:#1d2433;--muted:#5b6475;--bg:#f6efe1;--card:#fffdf8;--line:#d9ccb3;--navy:#1F3864;--gold:#B8860B;--red:#b3261e}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;font-size:18px;line-height:1.5}
+.wrap{max-width:1100px;margin:0 auto;padding:24px 16px 48px}
+.hero{display:flex;align-items:center;gap:20px;background:var(--navy);color:#fff;border-radius:22px;padding:26px 28px;box-shadow:0 5px 0 #0f1f3d}
+.hero .icon{font-size:3.4rem;line-height:1}
+.hero h1{font-family:Georgia,"Times New Roman",serif;font-size:2.2rem;margin:0}
+.hero p{margin:.25em 0 0;opacity:.9}
+.how{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:20px 0 8px}
+.how div{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 16px;font-size:.98rem}
+.how b{display:block;color:var(--navy);font-size:1.6rem;line-height:1.1;margin-bottom:4px}
+h2{font-family:Georgia,serif;color:var(--navy);font-size:1.5rem;margin:26px 4px 12px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
+a.tile{display:flex;flex-direction:column;text-decoration:none;color:inherit;background:var(--card);border:1px solid var(--line);border-radius:20px;overflow:hidden;box-shadow:0 3px 0 var(--line);transition:transform .12s}
+a.tile:active{transform:translateY(3px);box-shadow:0 0 0 var(--line)}
+@media (hover:hover){a.tile:hover{transform:translateY(-3px)}}
+.tile .top{background:linear-gradient(135deg,#efe2c4,#f8f1e1);display:flex;align-items:center;justify-content:center;font-size:4rem;height:120px;position:relative}
+.tile .neu{position:absolute;top:12px;right:12px;background:var(--red);color:#fff;font-size:.8rem;font-weight:700;padding:3px 10px;border-radius:999px;letter-spacing:.5px}
+.tile .body{padding:16px 18px 18px;display:flex;flex-direction:column;gap:6px;flex:1}
+.tile h3{margin:0;font-size:1.3rem;color:var(--navy)}
+.tile .meta{font-size:.88rem;color:var(--muted)}
+.tile .desc{font-size:1rem;margin:2px 0 6px;flex:1}
+.tile .foot{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.stars span{display:inline-block;background:#fff4d6;border:1px solid #e9cf86;color:var(--gold);border-radius:999px;padding:1px 10px;margin-right:4px;font-size:.9rem;letter-spacing:1px}
+.go{background:var(--navy);color:#fff;border-radius:12px;padding:8px 14px;font-weight:600;font-size:.95rem;white-space:nowrap}
+.empty{background:var(--card);border:2px dashed var(--line);border-radius:20px;display:grid;place-items:center;text-align:center;color:var(--muted);padding:24px;min-height:200px}
+footer{margin-top:36px;text-align:center;color:var(--muted);font-size:.85rem}
+@media (max-width:700px){.how{grid-template-columns:1fr}.hero{flex-direction:column;text-align:center}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="hero">
+    <div class="icon" aria-hidden="true">🔍</div>
+    <div>
+      <h1>Lesespuren</h1>
+      <p>Lies genau, folge der Spur und finde das Lösungswort!</p>
+    </div>
+  </header>
+
+  <section class="how" aria-label="So geht's">
+    <div><b>1</b>Wähle eine Lesespur aus.</div>
+    <div><b>2</b>Wähle deine Stufe: ★, ★★ oder ★★★.</div>
+    <div><b>3</b>Lies genau und tippe auf dem Plan, wo es weitergeht.</div>
+  </section>
+
+  <h2>Alle Lesespuren</h2>
+  <div class="grid" id="grid"></div>
+
+  <footer>Es werden keine Namen oder Ergebnisse gespeichert.</footer>
+</div>
+
+<script src="lesespuren.js"></script>
+<script>
+const grid = document.getElementById('grid');
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const list = (typeof LESESPUREN !== 'undefined') ? LESESPUREN : [];
+grid.innerHTML = list.map(l => `
+  <a class="tile" href="${esc(l.datei)}">
+    <div class="top" aria-hidden="true">${esc(l.bild || '📖')}${l.neu ? '<span class="neu">NEU</span>' : ''}</div>
+    <div class="body">
+      <h3>${esc(l.titel)}</h3>
+      <div class="meta">${esc(l.thema)}${l.fach ? ' · ' + esc(l.fach) : ''}</div>
+      <div class="desc">${esc(l.text)}</div>
+      <div class="foot">
+        <div class="stars">${(l.stufen || []).map(s => '<span>' + esc(s) + '</span>').join('')}</div>
+        <span class="go">Los geht's ➜</span>
+      </div>
+    </div>
+  </a>`).join('') + `<div class="empty">Bald gibt es hier<br>weitere Lesespuren …</div>`;
+</script>
+</body>
+</html>

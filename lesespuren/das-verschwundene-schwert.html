@@ -1,0 +1,302 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Lesespur: Das verschwundene Schwert</title>
+<style>
+:root{--ink:#1d2433;--muted:#5b6475;--bg:#f6efe1;--card:#fffdf8;--line:#d9ccb3;--navy:#1F3864;--gold:#B8860B;--red:#b3261e;--green:#2e7d32;--blue:#2f5fa7}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;font-size:18px;line-height:1.5}
+button{font:inherit;cursor:pointer;border:none;border-radius:14px;padding:.7em 1.1em;min-height:48px}
+.wrap{max-width:1180px;margin:0 auto;padding:16px}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+h1{font-family:Georgia,"Times New Roman",serif;font-size:1.6rem;margin:0;color:var(--navy)}
+.stars{color:var(--gold);letter-spacing:2px}
+.homelink{display:inline-flex;align-items:center;text-decoration:none;border-radius:14px;padding:.7em 1.1em;min-height:48px}
+.ghost{background:transparent;color:var(--navy);border:2px solid var(--line);font-size:.95rem}
+/* Start */
+#start .intro{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:22px;max-width:760px;margin:20px auto}
+#start h2{font-family:Georgia,serif;color:var(--navy);margin:0 0 .4em;font-size:1.9rem}
+.levels{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:18px}
+.lvl{background:var(--navy);color:#fff;font-size:2.1rem;padding:22px 0;border-radius:18px;box-shadow:0 4px 0 #0f1f3d}
+.lvl:active{transform:translateY(3px);box-shadow:0 1px 0 #0f1f3d}
+.steps{margin:.6em 0 0;padding-left:1.3em}
+/* Spiel */
+#game{display:none}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:16px;align-items:start}
+@media (max-width:900px){.grid{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px 20px;box-shadow:0 2px 0 var(--line)}
+.sechead{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.badge{background:var(--navy);color:#fff;font-weight:700;font-size:1.5rem;min-width:56px;height:56px;border-radius:14px;display:grid;place-items:center}
+.secname{font-weight:700;font-size:1.15rem;color:var(--navy)}
+#sectext{font-size:1.25rem;line-height:1.65;margin:0}
+#sectext b{color:var(--navy)}
+.lvl1 #sectext{font-size:1.4rem;line-height:1.75}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:14px}
+.speak{background:#e8eefb;color:var(--navy);font-weight:600}
+.speak.on{background:var(--navy);color:#fff}
+.letter{margin-left:auto;font-size:1rem;color:var(--muted)}
+.letter b{font-size:2rem;color:var(--red);vertical-align:middle;margin-left:6px}
+.hint{margin-top:12px;padding:12px 14px;border-radius:12px;background:#fff4d6;border:1px solid #e9cf86;font-size:1rem}
+.msg{margin-top:12px;padding:14px;border-radius:12px;font-weight:600;display:none}
+.msg.bad{display:block;background:#fde8e6;border:1px solid #f0b8b3;color:var(--red)}
+.msg.ok{display:block;background:#e6f4e7;border:1px solid #b5dcb7;color:var(--green)}
+.back{background:var(--red);color:#fff;margin-top:10px}
+.word{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.word span{width:40px;height:48px;border:2px solid var(--red);border-radius:8px;display:grid;place-items:center;font-size:1.5rem;font-weight:800;color:var(--red);background:#fff}
+.word span.filled{animation:pop .35s ease}
+@keyframes pop{0%{transform:scale(.6)}70%{transform:scale(1.15)}100%{transform:scale(1)}}
+.mapcard{padding:10px}
+.maphint{font-size:.95rem;color:var(--muted);margin:2px 6px 6px}
+#map{width:100%;height:auto;display:block;touch-action:manipulation}
+#map .area{font-size:2.4px;font-weight:700;fill:#7A6A58}
+#map .lbl{font-size:2.2px;font-style:italic;fill:#7A6A58}
+#map .place{cursor:pointer;outline:none}
+#map .pbox{stroke:#2B2B2B;stroke-width:.35;transition:all .15s}
+#map .pnum{fill:var(--navy);stroke:#fff;stroke-width:.4}
+#map .num{fill:#fff;font-weight:700;font-size:2.8px}
+#map .pname{fill:#2B2B2B;font-weight:700}
+#map .place:active .pbox,#map .place:focus .pbox{stroke:var(--gold);stroke-width:.9}
+#map .place.visited .pnum{fill:var(--green)}
+#map .place.current .pbox{stroke:var(--red);stroke-width:1}
+#map .place.shake{animation:shake .4s}
+@keyframes shake{25%{transform:translateX(-.8px)}75%{transform:translateX(.8px)}}
+#map .trail{stroke:var(--red);stroke-width:.8;stroke-dasharray:1.6 1.2;fill:none;stroke-linecap:round}
+details{margin-top:10px;font-size:.95rem}
+summary{cursor:pointer;font-weight:600;color:var(--navy);padding:6px 0}
+.legend{display:grid;grid-template-columns:1fr 1fr;gap:2px 14px;margin-top:6px}
+@media (max-width:600px){.legend{grid-template-columns:1fr}.levels{grid-template-columns:1fr}}
+/* Ende */
+#end{display:none}
+.cert{max-width:720px;margin:20px auto;text-align:center;background:var(--card);border:6px double var(--gold);border-radius:20px;padding:28px}
+.cert h2{font-family:Georgia,serif;color:var(--navy);font-size:2rem;margin:.2em 0}
+.cert .big{font-size:2.6rem;font-weight:800;letter-spacing:6px;color:var(--red);margin:.3em 0}
+.task{background:#eef3fb;border-radius:14px;padding:14px;margin-top:16px;text-align:left}
+.primary{background:var(--navy);color:#fff}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Lesespur: Das verschwundene Schwert <span class="stars" id="hstars"></span></h1>
+    <div style="display:flex;gap:8px"><a class="ghost homelink" href="../index.html">← Alle Lesespuren</a><button class="ghost" id="restart" style="display:none">Neu starten</button></div>
+  </header>
+
+  <section id="start">
+    <div class="intro">
+      <h2>Hilf Rakan!</h2>
+      <p>Morgen soll Rakan zum Ritter werden. Doch sein Schwert ist verschwunden! Folge der Spur durch die Burg.</p>
+      <ol class="steps">
+        <li>Lies den Abschnitt genau.</li>
+        <li>Überlege: Wohin geht es weiter?</li>
+        <li>Tippe den Ort auf dem Burgplan an.</li>
+        <li>Sammle die Buchstaben. Sie ergeben ein Lösungswort.</li>
+      </ol>
+      <p style="margin-top:1em;font-weight:600">Wähle deine Stufe:</p>
+      <div class="levels">
+        <button class="lvl" data-l="1" aria-label="Stufe 1">★</button>
+        <button class="lvl" data-l="2" aria-label="Stufe 2">★★</button>
+        <button class="lvl" data-l="3" aria-label="Stufe 3">★★★</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="game">
+    <div class="grid">
+      <div class="card" id="seccard">
+        <div class="sechead"><div class="badge" id="secnum">1</div><div><div class="secname" id="secname"></div><div style="font-size:.9rem;color:var(--muted)">Abschnitt</div></div></div>
+        <p id="sectext"></p>
+        <div class="row">
+          <button class="speak" id="speak">🔊 Vorlesen</button>
+          <div class="letter" id="letterbox"></div>
+        </div>
+        <div class="msg" id="msg"></div>
+        <div id="backwrap"></div>
+        <div class="hint" id="tip"></div>
+        <div style="margin-top:16px;font-weight:600">Mein Lösungswort:</div>
+        <div class="word" id="word"></div>
+      </div>
+      <div class="card mapcard">
+        <p class="maphint">Tippe auf den Ort, an dem es weitergeht.</p>
+        <svg id="map" viewBox="0 0 100 92" xmlns="http://www.w3.org/2000/svg" aria-label="Burgplan"><rect x="1" y="2" width="98" height="86" rx="6" fill="#CFE3F2" stroke="#8FB3D1" stroke-width=".5"/><rect x="5" y="6" width="90" height="78" rx="4" fill="#FBF3E0" stroke="#7A6A58" stroke-width="2.2"/><line x1="5.5" y1="46" x2="40" y2="46" stroke="#7A6A58" stroke-width="1.5"/><line x1="60" y1="46" x2="94.5" y2="46" stroke="#7A6A58" stroke-width="1.5"/><text x="50" y="44.4" class="lbl" text-anchor="middle">Tor zur Hauptburg</text><text x="9" y="13" class="area">HAUPTBURG</text><text x="9" y="49.5" class="area">VORBURG</text><circle cx="5" cy="84" r="3.2" fill="#A89580" stroke="#7A6A58" stroke-width=".5"/><circle cx="95" cy="84" r="3.2" fill="#A89580" stroke="#7A6A58" stroke-width=".5"/><circle cx="5" cy="6" r="3.2" fill="#A89580" stroke="#7A6A58" stroke-width=".5"/><circle cx="95" cy="6" r="3.2" fill="#A89580" stroke="#7A6A58" stroke-width=".5"/><rect x="44" y="80.5" width="12" height="6" fill="#8B5A2B" stroke="#2B2B2B" stroke-width=".35"/><g id="pathlayer"></g><g class="place" data-n="1" tabindex="0" role="button" aria-label="1 Burgtor">
+      <rect class="pbox" x="41" y="72" width="18" height="8.5" rx="1.5" fill="#FCE4D6"/>
+      <circle class="pnum" cx="44.6" cy="76.25" r="2.8"/>
+      <text x="44.6" y="77.25" class="num" text-anchor="middle">1</text>
+      <text x="53.25" y="76.25" class="pname" text-anchor="middle" style="font-size:2.2px"><tspan x="53.25" dy="0.95">Burgtor</tspan></text></g><g class="place" data-n="2" tabindex="0" role="button" aria-label="2 Kapelle">
+      <rect class="pbox" x="74" y="14" width="17" height="8" rx="1.5" fill="#FFFFFF"/>
+      <circle class="pnum" cx="77.6" cy="18" r="2.8"/>
+      <text x="77.6" y="19" class="num" text-anchor="middle">2</text>
+      <text x="85.75" y="18" class="pname" text-anchor="middle" style="font-size:2.2px"><tspan x="85.75" dy="0.95">Kapelle</tspan></text></g><g class="place" data-n="3" tabindex="0" role="button" aria-label="3 Brunnen">
+      <rect class="pbox" x="41" y="52" width="18" height="8" rx="1.5" fill="#DEEBF7"/>
+      <circle class="pnum" cx="44.6" cy="56" r="2.8"/>
+      <text x="44.6" y="57" class="num" text-anchor="middle">3</text>
+      <text x="53.25" y="56" class="pname" text-anchor="middle" style="font-size:2.2px"><tspan x="53.25" dy="0.95">Brunnen</tspan></text></g><g class="place" data-n="4" tabindex="0" role="button" aria-label="4 Waffen-kammer">
+      <rect class="pbox" x="10" y="28" width="18" height="10" rx="1.5" fill="#FFFFFF"/>
+      <circle class="pnum" cx="13.6" cy="33" r="2.8"/>
+      <text x="13.6" y="34" class="num" text-anchor="middle">4</text>
+      <text x="22.25" y="33" class="pname" text-anchor="middle" style="font-size:2.2px"><tspan x="22.25" dy="-0.55">Waffen-</tspan><tspan x="22.25" dy="3.1">kammer</tspan></text></g><g class="place" data-n="5" tabindex="0" role="button" aria-label="5 Küche">
+      <rect class="pbox" x="52" y="29" width="19" height="8" rx="1.5" fill="#FFFFFF"/>
+      <circle class="pnum" cx="55.6" cy="33" r="2.8"/>
+      <text x="55.6" y="34" class="num" text-anchor="middle">5</text>
+      <text x="64.75" y="33" class="pname" text-anchor="middle" style="font-size:2.2px"><tspan x="64.75" dy="0.95">Küche</tspan></text></g><g class="place" data-n="6" tabindex="0" role="button" aria-label="6 Bergfried">
+      <rect class="pbox" x="10" y="14" width="18" height="8" rx="1.5" fill="#EDE4D3"/>
+      <circle class="pnum" cx="13.6" cy="18" r="2.8"/>
+      <text x="13.6" y="19" class="num" text-anchor="middle">6</text>
+      <text x="22.25" y="18" class="pname" text-anchor="middle" style="font-size:2.2px"><tspan x="22.25" dy="0.95">Bergfried</tspan></text></g><g class="place" data-n="7" tabindex="0" role="button" aria-label="7 Stall">
+      <rect class="pbox" x="10" y="68" width="18" height="8" rx="1.5" fill="#FFFFFF"/>
+      <circle class="pnum" cx="13.6" cy="72" r="2.8"/>
+      <text x="13.6" y="73" class="num" text-anchor="middle">7</text>
+      <text x="22.25" y="72" class="pname" text-anchor="middle" style="font-size:2.2px"><tspan x="22.25" dy="0.95">Stall</tspan></text></g><g class="place" data-n="8" tabindex="0" role="button" aria-label="8 Rittersaal">
+      <rect class="pbox" x="52" y="14" width="19" height="8" rx="1.5" fill="#FFFFFF"/>
+      <circle class="pnum" cx="55.6" cy="18" r="2.8"/>
+      <text x="55.6" y="19" class="num" text-anchor="middle">8</text>
+      <text x="64.75" y="18" class="pname" text-anchor="middle" style="font-size:2.2px"><tspan x="64.75" dy="0.95">Rittersaal</tspan></text></g><g class="place" data-n="9" tabindex="0" role="button" aria-label="9 Schmiede">
+      <rect class="pbox" x="10" y="52" width="18" height="8" rx="1.5" fill="#FFFFFF"/>
+      <circle class="pnum" cx="13.6" cy="56" r="2.8"/>
+      <text x="13.6" y="57" class="num" text-anchor="middle">9</text>
+      <text x="22.25" y="56" class="pname" text-anchor="middle" style="font-size:2.2px"><tspan x="22.25" dy="0.95">Schmiede</tspan></text></g><g class="place" data-n="10" tabindex="0" role="button" aria-label="10 Kräuter-garten">
+      <rect class="pbox" x="74" y="28" width="17" height="10" rx="1.5" fill="#E2F0D9"/>
+      <circle class="pnum" cx="77.6" cy="33" r="2.8"/>
+      <text x="77.6" y="34" class="num" text-anchor="middle">10</text>
+      <text x="85.75" y="33" class="pname" text-anchor="middle" style="font-size:2.2px"><tspan x="85.75" dy="-0.55">Kräuter-</tspan><tspan x="85.75" dy="3.1">garten</tspan></text></g><g class="place" data-n="11" tabindex="0" role="button" aria-label="11 Backhaus">
+      <rect class="pbox" x="73" y="52" width="18" height="8" rx="1.5" fill="#FFFFFF"/>
+      <circle class="pnum" cx="76.6" cy="56" r="2.8"/>
+      <text x="76.6" y="57" class="num" text-anchor="middle">11</text>
+      <text x="85.25" y="56" class="pname" text-anchor="middle" style="font-size:2.2px"><tspan x="85.25" dy="0.95">Backhaus</tspan></text></g><g class="place" data-n="12" tabindex="0" role="button" aria-label="12 Kerker">
+      <rect class="pbox" x="31" y="29" width="18" height="8" rx="1.5" fill="#FFFFFF"/>
+      <circle class="pnum" cx="34.6" cy="33" r="2.8"/>
+      <text x="34.6" y="34" class="num" text-anchor="middle">12</text>
+      <text x="43.25" y="33" class="pname" text-anchor="middle" style="font-size:2.2px"><tspan x="43.25" dy="0.95">Kerker</tspan></text></g><g class="place" data-n="13" tabindex="0" role="button" aria-label="13 Wehrgang (auf der Mauer)">
+      <rect class="pbox" x="33" y="2.299999999999997" width="34" height="7.4" rx="1.5" fill="#D9D2C5"/>
+      <circle class="pnum" cx="36.6" cy="5.999999999999997" r="2.8"/>
+      <text x="36.6" y="6.999999999999997" class="num" text-anchor="middle">13</text>
+      <text x="53.25" y="5.999999999999997" class="pname" text-anchor="middle" style="font-size:2.1px"><tspan x="53.25" dy="0.95">Wehrgang (auf der Mauer)</tspan></text></g><g class="place" data-n="14" tabindex="0" role="button" aria-label="14 Vorrats-keller">
+      <rect class="pbox" x="73" y="65" width="18" height="10" rx="1.5" fill="#FFFFFF"/>
+      <circle class="pnum" cx="76.6" cy="70" r="2.8"/>
+      <text x="76.6" y="71" class="num" text-anchor="middle">14</text>
+      <text x="85.25" y="70" class="pname" text-anchor="middle" style="font-size:2.2px"><tspan x="85.25" dy="-0.55">Vorrats-</tspan><tspan x="85.25" dy="3.1">keller</tspan></text></g><g class="place" data-n="15" tabindex="0" role="button" aria-label="15 Kemenate">
+      <rect class="pbox" x="31" y="14" width="18" height="8" rx="1.5" fill="#FFFFFF"/>
+      <circle class="pnum" cx="34.6" cy="18" r="2.8"/>
+      <text x="34.6" y="19" class="num" text-anchor="middle">15</text>
+      <text x="43.25" y="18" class="pname" text-anchor="middle" style="font-size:2.2px"><tspan x="43.25" dy="0.95">Kemenate</tspan></text></g><g class="place" data-n="16" tabindex="0" role="button" aria-label="16 Turnier-platz">
+      <rect class="pbox" x="31" y="61" width="18" height="9" rx="1.5" fill="#FFF2CC"/>
+      <circle class="pnum" cx="34.6" cy="65.5" r="2.8"/>
+      <text x="34.6" y="66.5" class="num" text-anchor="middle">16</text>
+      <text x="43.25" y="65.5" class="pname" text-anchor="middle" style="font-size:2.2px"><tspan x="43.25" dy="-0.55">Turnier-</tspan><tspan x="43.25" dy="3.1">platz</tspan></text></g><text x="50" y="91.4" class="lbl" text-anchor="middle" fill="#4F7DA6">Burggraben</text></svg>
+        <details id="legendbox"><summary>Ortsliste: Was ist wo?</summary>
+          <div class="legend"><div><b>1 Burgtor</b> – Eingang der Burg (Start)</div><div><b>2 Kapelle</b> – kleine Kirche zum Beten</div><div><b>3 Brunnen</b> – hier holt man Wasser</div><div><b>4 Waffenkammer</b> – Lager für Schwerter, Schilde und Lanzen</div><div><b>5 Küche</b> – hier wird gekocht</div><div><b>6 Bergfried</b> – der höchste Turm der Burg</div><div><b>7 Stall</b> – hier stehen die Pferde</div><div><b>8 Rittersaal</b> – großer Saal für Feste</div><div><b>9 Schmiede</b> – hier wird Eisen im Feuer bearbeitet</div><div><b>10 Kräutergarten</b> – Blumen und Heilkräuter</div><div><b>11 Backhaus</b> – hier wird Brot gebacken</div><div><b>12 Kerker</b> – Gefängnis unter der Burg</div><div><b>13 Wehrgang</b> – Weg oben auf der Burgmauer für die Wächter</div><div><b>14 Vorratskeller</b> – Lager für Fässer und Säcke mit Essen</div><div><b>15 Kemenate</b> – Wohnraum der Burgherrin</div><div><b>16 Turnierplatz</b> – Platz für Ritterkämpfe mit Lanzen</div></div>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <section id="end">
+    <div class="cert">
+      <div class="stars" id="cstars" style="font-size:1.6rem"></div>
+      <h2>Geschafft!</h2>
+      <p>Du hast Rakans Schwert gefunden. Dein Lösungswort:</p>
+      <div class="big" id="cword"></div>
+      <p id="cwrong"></p>
+      <div class="task"><b>Deine Aufgabe:</b> <span id="ctask"></span></div>
+      <div class="row" style="justify-content:center"><button class="primary" id="again">Zurück zum Start</button></div>
+    </div>
+  </section>
+</div>
+
+<script>
+const LEVELS = {"1":{"stars":"★","word":"SCHWERT","path":[1,4,9,7,5,10,2],"decoys":{"7":8,"9":3,"10":6},"secs":{"1":{"t":"Es ist früh am Morgen. Am **Burgtor** wartet Rakan. Er ist Knappe. Morgen ist seine Schwertleite. Doch Rakan ist traurig: „Mein Schwert ist weg!“ Hilf Rakan! Geht zuerst in die **Waffenkammer**. Dort hing das Schwert.","l":"S"},"2":{"t":"In der **Kapelle** ist es still. Vor dem Altar kniet Mohammad. Neben ihm liegt Rakans Schwert. Es glänzt wie neu! Daneben liegen Blumen. „Überraschung!“, sagt Mohammad leise. „Dein Schwert soll morgen schön sein.“ Rakan lacht und umarmt ihn. Vor der Tür warten schon Tasnim, Anisia-Emilia, Johannes, Milana, Lena M., Lena W., Mia, Annika, Julia und Fanni. Alle freuen sich auf das Fest. Du hast das Schwert gefunden. **Ende!**","l":"T"},"3":{"t":"Am **Brunnen** holt die Magd Romy Wasser. Mohammad ist nicht hier. **Halt!** Hier bist du falsch. Lies Abschnitt **9** noch einmal genau.","l":null},"4":{"t":"In der **Waffenkammer** hängen Schilde und Helme. Der Haken für Rakans Schwert ist leer. Auf dem Boden liegt ein kleiner Schuh. „Der gehört Mohammad!“, ruft Rakan. Mohammad ist der jüngste Page der Burg. Der Diener Leopold sagt: „Mohammad ist zur **Schmiede** gelaufen.“","l":"C"},"5":{"t":"In der **Küche** kocht die Köchin Daria eine Suppe. „Mohammad hat Brot geholt“, sagt sie. „Dann wollte er Blumen pflücken.“ Blumen und Kräuter wachsen im **Kräutergarten**. Lauft schnell dorthin!","l":"E"},"6":{"t":"Der **Bergfried** ist der höchste Turm der Burg. Die Tür ist zu. **Halt!** Hier bist du falsch. Lies Abschnitt **10** noch einmal genau.","l":null},"7":{"t":"Im **Stall** stehen die Pferde. Es riecht nach Heu. Im Stroh liegt ein Tuch mit Öl. „Damit hat Mohammad das Schwert geputzt!“, sagt Rakan. Rakan will in den **Rittersaal** gehen. Doch der Stallknecht Leon ruft: „Nein! Mohammad ist in der **Küche**.“","l":"W"},"8":{"t":"Im **Rittersaal** steht ein langer Tisch. Hier ist niemand. **Halt!** Hier bist du falsch. Lies Abschnitt **7** noch einmal genau.","l":null},"9":{"t":"In der **Schmiede** ist es heiß. Der Schmied Niklas schlägt auf ein Eisen. „Ja, Mohammad war hier“, sagt er. „Ich habe das Schwert scharf gemacht.“ Rakan fragt: „Und wo ist Mohammad jetzt?“ Der Schmied sagt: „Erst wollte er zum **Brunnen**. Aber dann ist er zum **Stall** gerannt.“","l":"H"},"10":{"t":"Im **Kräutergarten** riecht es gut. Ein paar Blumen fehlen. Die Kräuterfrau Emma sagt: „Mohammad trug ein langes Paket. Er ist nicht zum **Bergfried** gelaufen. Er ist zur **Kapelle** gegangen.“","l":"R"}},"tip":"Die fett gedruckten Wörter sind Orte auf dem Burgplan.","task":"Wer hat das Schwert genommen? Warum? Erzähle es deinem Partner."},"2":{"stars":"★★","word":"HELDENMUT","path":[1,4,13,9,7,11,15,10,2],"decoys":{"7":5,"10":6,"13":3,"15":12},"secs":{"1":{"t":"Es ist ein kalter Herbstmorgen. Am Burgtor wartet Rakan, ein Knappe von fast 21 Jahren. Morgen soll er bei der Schwertleite zum Ritter werden. Doch nun ist er verzweifelt: Sein Schwert ist verschwunden! Hilf ihm, es zu finden. Beginne dort, wo die Waffen der Burg aufbewahrt werden.","l":"H"},"2":{"t":"In der Kapelle brennen Kerzen. Vor dem Altar liegt Rakans Schwert. Es glänzt, um den Griff ist ein rotes Band gebunden und daneben liegen Blumen. Mohammad kniet davor. „Ich wollte, dass dein Schwert für morgen gesegnet wird“, flüstert er. Rakan ist gerührt. „Du bist ein treuer Freund. Eines Tages wirst du ein guter Ritter.“ Vor der Tür warten schon Tasnim, Anisia-Emilia, Johannes, Milana, Lena M., Lena W., Mia, Annika, Julia und Fanni. Alle freuen sich auf das Fest. Du hast es geschafft. Ende!","l":"T"},"3":{"t":"Am Brunnen zieht die Magd Romy einen Eimer herauf. „Mohammad? Den habe ich nicht gesehen“, sagt sie. Der Brunnen war nur ein Wegweiser. Lies Abschnitt 13 noch einmal: Zu wem wollte Mohammad?","l":null},"4":{"t":"An den Wänden hängen Schilde, Lanzen und Helme. Nur der Haken für Rakans Schwert ist leer. Darunter liegt ein kleiner Lederschuh. „Der gehört Mohammad, dem jüngsten Pagen!“, sagt Rakan. Der Wächter Leopold erzählt: „Ich habe Mohammad heute früh oben auf der Burgmauer gesehen, dort, wo wir Wächter unsere Runden drehen.“","l":"E"},"5":{"t":"Die Köchin Daria rührt im großen Kessel. „Mohammad? Den habe ich heute noch nicht gesehen!“, ruft sie. Halt! Hier bist du falsch. Lies Abschnitt 7 noch einmal genau.","l":null},"6":{"t":"Du steigst die vielen Stufen des Bergfrieds hinauf. Oben steht nur die Wächterin Samantha. Mohammad ist nicht hier. Halt! Hier bist du falsch. Lies Abschnitt 10 noch einmal genau.","l":null},"7":{"t":"Im Stall riecht es nach Heu und Pferden. Blitz, Rakans Pferd, schnaubt fröhlich. Im Stroh liegt das Öltuch. Der Stallknecht Leon erzählt: „Mohammad hat hier das Schwert poliert. Dann hatte er Hunger. In die Küche ist er aber nicht gegangen, die Köchin hat heute keine Zeit für ihn. Er wollte lieber frisches Brot holen.“","l":"E"},"9":{"t":"Funken sprühen, als der Schmied Niklas auf das glühende Eisen schlägt. „Ja, der Kleine war hier“, sagt er und wischt sich den Schweiß ab. „Er hat Rakans Schwert gebracht und ich habe es geschärft. Dann wollte er es noch putzen. Dafür hat er ein Öltuch bekommen. Er sagte, er geht damit zu Blitz, Rakans Pferd.“","l":"D"},"10":{"t":"Zwischen Salbei und Lavendel fehlen ein paar Blumen. Die Kräuterfrau Emma richtet sich auf. „Mohammad hat einen Strauß gepflückt“, sagt sie. „Er trug ein langes Paket in einem Tuch. Ich dachte, er geht hinauf in den höchsten Turm. Aber dann ist er dorthin gegangen, wo man betet.“","l":"U"},"11":{"t":"Aus dem Backhaus kommt ein warmer Duft. Der Bäcker Max zieht gerade Brote aus dem Ofen. „Mohammad hat ein Brot bekommen“, lacht er. „Er hat gesagt, er muss noch zur Burgherrin. Sie soll ihm etwas Schönes für das Schwert geben.“","l":"N"},"12":{"t":"Im Kerker ist es dunkel und feucht. Hier wachsen keine Blumen! Halt! Hier bist du falsch. Lies Abschnitt 15 noch einmal genau.","l":null},"13":{"t":"Oben auf dem Wehrgang pfeift der Wind. Die Wächterin Melisa schaut in die Ferne. „Mohammad?“, brummt sie. „Der hat mich gefragt, wer hier Schwerter schärfen kann. Ich habe ihm den Weg am Brunnen vorbei gezeigt, zu dem Mann, der am Feuer das Eisen bearbeitet.“","l":"L"},"15":{"t":"In der Kemenate sitzt die Burgherrin Lilly am Fenster und stickt. Mohammad ist ihr Page, er dient ihr jeden Tag. „Er wollte ein Band für das Schwert“, erzählt sie. „Ich habe ihm ein rotes Seidenband gegeben. Dann ist er losgelaufen, um Blumen zu pflücken. Sicher nicht im Kerker, dort wächst ja nichts!“","l":"M"}},"tip":"Manchmal wird der Ort nur beschrieben. Die Ortsliste hilft dir.","task":"Warum hat Mohammad das Schwert genommen? Nenne zwei Hinweise aus der Lesespur."},"3":{"stars":"★★★","word":"TAPFERKEIT","path":[1,4,13,9,16,7,11,15,10,2],"decoys":{"4":6,"7":14,"9":8,"10":12,"16":3},"secs":{"1":{"t":"Nebel liegt über dem Burggraben, als du das Burgtor erreichst. Dort wartet Rakan, ein Knappe, der morgen bei der Schwertleite zum Ritter werden soll. Er ist blass. „Mein Schwert ist verschwunden“, sagt er leise. „Gestern Abend hing es noch an seinem Platz, zwischen den Lanzen und Schilden.“ Finde heraus, was passiert ist. Beginne dort, wo Rakan sein Schwert zuletzt gesehen hat.","l":"T"},"2":{"t":"Durch die kleine Tür trittst du in die Kapelle. Kerzen flackern. Vor dem Altar liegt Rakans Schwert, frisch geschärft, mit einem roten Band und einem Strauß Blumen. Mohammad kniet davor. „Ich wollte, dass dein Schwert gesegnet ist, bevor du Ritter wirst“, sagt er. Rakan legt ihm die Hand auf die Schulter: „Treu und höflich warst du, und mutig dazu. Du hast mir heute gezeigt, was einen Ritter ausmacht.“ Vor der Tür warten schon Tasnim, Anisia-Emilia, Johannes, Milana, Lena M., Lena W., Mia, Annika, Julia und Fanni. Alle freuen sich auf das Fest. Ende!","l":"T"},"3":{"t":"Die Magd Romy zieht einen Eimer aus dem Brunnen. Mohammad war nicht hier. Kein Wunder: Wasser schadet einer Klinge. Überlege noch einmal und lies Abschnitt 16 genau.","l":null},"4":{"t":"In der Waffenkammer riecht es nach Leder und Eisen. Der Haken ist leer. Darunter liegt ein winziger Schuh. „Nur einer auf der Burg hat so kleine Füße“, murmelt Rakan. „Der jüngste Page, Mohammad!“ Der Wächter Leopold tritt hinzu: „Heute vor Sonnenaufgang habe ich einen kleinen Schatten gesehen. Nicht im hohen Turm, sondern oben auf dem Weg, den wir jede Nacht auf der Mauer entlanglaufen.“","l":"A"},"6":{"t":"Nach unzähligen Stufen stehst du oben im höchsten Turm der Burg. Die Wächterin Samantha schaut dich verwundert an: „Hier oben war heute niemand.“ Lies Abschnitt 4 noch einmal: Wo genau hat der Wächter den Schatten gesehen?","l":null},"7":{"t":"Der Hengst Blitz begrüßt dich mit einem Schnauben. Neben ihm liegt das Öltuch, die Klinge wurde also schon geputzt. Der Stallknecht Leon grinst: „Der Kleine hatte danach Hunger. Ich habe ihm gesagt: Unten bei den Fässern und Säcken gibt es nur alte Rüben. Geh lieber dorthin, wo seit dem Morgengrauen der Ofen glüht und es nach frischem Brot riecht.“","l":"R"},"8":{"t":"Diener schmücken die langen Tische für das große Fest. „Mohammad? Der war heute nicht hier“, sagt die Dienerin Kacee. Du hast dich verlaufen. Lies Abschnitt 9 noch einmal: Wo wollte Mohammad das Schwert ausprobieren?","l":null},"9":{"t":"Funken stieben, Hammerschläge dröhnen. Der Schmied Niklas legt das Werkzeug weg. „Der Kleine kam mit Rakans Schwert. Ich habe es ihm geschärft.“ Er lacht. „Dann wollte er wissen, ob es gut schneidet. Ich sagte: Probier es nicht dort aus, wo morgen das Fest stattfindet. Geh dahin, wo die Ritter nach der Feier mit Lanzen gegeneinander reiten. Dort stehen Strohpuppen.“","l":"F"},"10":{"t":"Zwischen Salbei und Lavendel fehlen einige Blüten. Die Kräuterfrau Emma stützt sich auf ihre Harke. „Mohammad trug ein langes Paket in einem Tuch. Ein Wächter meint, er sei zum Gefängnis unter der Burg gelaufen. Aber der Wächter irrt sich oft. Ich habe genau gesehen, wie Mohammad durch die kleine Tür ging, hinter der ein Knappe die Nacht vor seiner Schwertleite betet.“","l":"I"},"11":{"t":"Warme Luft schlägt dir entgegen. Der Bäcker Max schiebt gerade Brote in den Ofen. „Mohammad hat ein Brot bekommen“, erzählt er. „Er war sehr aufgeregt. Er sagte, er müsse noch zu der Frau, der er als Page jeden Tag dient. Er wollte sie um etwas Schönes bitten.“","l":"K"},"12":{"t":"Es ist dunkel und feucht. Nur ein Gefangener schnarcht in der Ecke. Der Wächter hat sich wohl wirklich geirrt. Lies Abschnitt 10 noch einmal genau.","l":null},"13":{"t":"Oben auf der Mauer pfeift der Wind. Die Wächterin Melisa erinnert sich: „Der Kleine hat mich etwas Seltsames gefragt: Wo ist es heute auf der Burg am heißesten? Ich habe gesagt: Dort, wo die Funken fliegen und das Eisen glüht. Da ist er sofort losgerannt.“","l":"P"},"14":{"t":"Zwischen Fässern und Säcken ist es kalt. Hier gibt es nur alte Rüben und keinen Mohammad. Lies Abschnitt 7 noch einmal genau.","l":null},"15":{"t":"Die Burgherrin Lilly sitzt am Fenster und stickt. „Mohammad war hier“, sagt sie. „Er bat mich um ein rotes Seidenband für Rakans Schwert. Dann wollte er Blumen für den Altar. Ich habe ihm gesagt: Nicht von der Wiese vor dem Tor! Pflück sie dort, wo auch die Heilkräuter wachsen.“","l":"E"},"16":{"t":"Auf dem großen Platz stehen Strohpuppen. Eine davon ist glatt durchgeschnitten. Der Pferdeknecht Ben erzählt: „Der Kleine war ganz stolz. Danach wollte er die Klinge am Brunnen waschen. Aber Wasser lässt Eisen rosten, das weiß doch jeder Knappe! Ich habe ihm geraten, das Schwert mit Öl zu putzen, dort, wo Rakans Hengst Blitz im Heu steht.“","l":"E"}},"tip":"Die Orte werden fast nie genannt. Lies genau und denk an den Text „Vom Pagen zum Ritter“.","task":"Mohammad verhält sich schon wie ein Ritter. Begründe mit den Ritter-Regeln (tapfer, treu, höflich)."}};
+const CENTER = {"1":[44.6,76.25],"2":[77.6,18],"3":[44.6,56],"4":[13.6,33],"5":[55.6,33],"6":[13.6,18],"7":[13.6,72],"8":[55.6,18],"9":[13.6,56],"10":[77.6,33],"11":[76.6,56],"12":[34.6,33],"13":[37,6.000000000000003],"14":[76.6,70],"15":[34.6,18],"16":[34.6,65.5]};
+const NAMES = {"1":"Burgtor","2":"Kapelle","3":"Brunnen","4":"Waffenkammer","5":"Küche","6":"Bergfried","7":"Stall","8":"Rittersaal","9":"Schmiede","10":"Kräutergarten","11":"Backhaus","12":"Kerker","13":"Wehrgang","14":"Vorratskeller","15":"Kemenate","16":"Turnierplatz"};
+let L, lv, step, cur, wrong, inDecoy;
+const $ = id => document.getElementById(id);
+
+function show(id){ ['start','game','end'].forEach(s => $(s).style.display = s===id ? 'block' : 'none'); $('restart').style.display = id==='game' ? 'inline-block' : 'none'; window.scrollTo(0,0); }
+function fmt(t){ return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/\*\*([^*]+)\*\*/g,'<b>$1</b>'); }
+function plain(t){ return t.replace(/\*\*/g,''); }
+
+function start(l){
+  lv = l; L = LEVELS[l]; step = 0; wrong = 0; inDecoy = false;
+  document.body.className = 'lvl' + l;
+  $('hstars').textContent = L.stars; $('tip').textContent = 'Tipp: ' + L.tip;
+  $('legendbox').open = l > 1;
+  $('word').innerHTML = L.word.split('').map(() => '<span></span>').join('');
+  document.querySelectorAll('.place').forEach(p => p.classList.remove('visited','current'));
+  $('pathlayer').innerHTML = '';
+  show('game'); openSection(1, true);
+}
+function openSection(n, correct){
+  stopSpeak(); cur = n;
+  const s = L.secs[n];
+  $('secnum').textContent = n; $('secname').textContent = NAMES[n];
+  $('sectext').innerHTML = fmt(s.t);
+  $('letterbox').innerHTML = (correct && s.l) ? 'Dein Buchstabe:<b>' + s.l + '</b>' : '';
+  $('msg').className = 'msg'; $('msg').textContent = ''; $('backwrap').innerHTML = '';
+  document.querySelectorAll('.place').forEach(p => p.classList.toggle('current', +p.dataset.n === n));
+  if (correct) {
+    const box = $('word').children[step]; box.textContent = s.l; box.classList.add('filled');
+    document.querySelector('.place[data-n="'+n+'"]').classList.add('visited');
+    drawTrail();
+  }
+  if (window.innerWidth <= 900) $('seccard').scrollIntoView({behavior:'smooth'});
+}
+function drawTrail(){
+  const pts = L.path.slice(0, step+1).map(n => CENTER[n].join(',')).join(' ');
+  $('pathlayer').innerHTML = '<polyline class="trail" points="'+pts+'"/>';
+}
+function tap(n){
+  if (inDecoy) { flash('Lies zuerst noch einmal Abschnitt ' + L.path[step] + '. Tippe auf „Zurück“.'); return; }
+  const here = L.path[step], next = L.path[step+1];
+  if (n === here) { flash('Hier bist du gerade. Wohin geht es weiter?', n); return; }
+  if (n === next) {
+    step++; openSection(n, true);
+    if (step === L.path.length-1) setTimeout(() => finishBtn(), 300);
+    return;
+  }
+  wrong++;
+  if (L.decoys[here] === n) {
+    inDecoy = true; openSection(n, false);
+    $('backwrap').innerHTML = '<button class="back" id="backbtn">↩ Zurück zu Abschnitt ' + here + '</button>';
+    $('backbtn').onclick = () => { inDecoy = false; reopen(here); };
+    return;
+  }
+  flash('Hier findest du keine Spur. Lies den Abschnitt noch einmal genau.', n);
+}
+function reopen(n){
+  stopSpeak(); cur = n; const s = L.secs[n];
+  $('secnum').textContent = n; $('secname').textContent = NAMES[n];
+  $('sectext').innerHTML = fmt(s.t);
+  $('letterbox').innerHTML = s.l ? 'Dein Buchstabe:<b>' + s.l + '</b>' : '';
+  $('msg').className = 'msg'; $('backwrap').innerHTML = '';
+  document.querySelectorAll('.place').forEach(p => p.classList.toggle('current', +p.dataset.n === n));
+}
+function flash(t, n){
+  $('msg').className = 'msg bad'; $('msg').textContent = t;
+  if (n) { const p = document.querySelector('.place[data-n="'+n+'"]'); p.classList.remove('shake'); void p.getBBox(); p.classList.add('shake'); }
+}
+function finishBtn(){
+  $('msg').className = 'msg ok'; $('msg').textContent = 'Du hast alle Buchstaben gefunden!';
+  $('backwrap').innerHTML = '<button class="primary" id="fin" style="margin-top:10px">Zur Urkunde ➜</button>';
+  $('fin').onclick = () => { stopSpeak(); $('cstars').textContent = L.stars; $('cword').textContent = L.word; $('ctask').textContent = L.task;
+    $('cwrong').textContent = wrong === 0 ? 'Du hast dich kein einziges Mal verlaufen. Super genau gelesen!' : 'Du hast dich ' + wrong + '-mal verlaufen und den Weg trotzdem gefunden.';
+    show('end'); };
+}
+// Vorlesen
+let speaking = false;
+function stopSpeak(){ if ('speechSynthesis' in window) speechSynthesis.cancel(); speaking = false; $('speak').classList.remove('on'); $('speak').textContent = '🔊 Vorlesen'; }
+$('speak').onclick = () => {
+  if (!('speechSynthesis' in window)) { flash('Vorlesen geht auf diesem Gerät leider nicht.'); return; }
+  if (speaking) { stopSpeak(); return; }
+  const u = new SpeechSynthesisUtterance(plain(L.secs[cur].t));
+  u.lang = 'de-DE'; u.rate = lv === 1 ? 0.8 : 0.9;
+  const v = speechSynthesis.getVoices().find(v => v.lang && v.lang.startsWith('de')); if (v) u.voice = v;
+  u.onend = stopSpeak; speechSynthesis.speak(u);
+  speaking = true; $('speak').classList.add('on'); $('speak').textContent = '⏹ Stopp';
+};
+document.querySelectorAll('.lvl').forEach(b => b.onclick = () => start(+b.dataset.l));
+document.querySelectorAll('.place').forEach(p => { p.addEventListener('click', () => tap(+p.dataset.n)); p.addEventListener('keydown', e => { if (e.key==='Enter'||e.key===' ') { e.preventDefault(); tap(+p.dataset.n); } }); });
+$('restart').onclick = () => { stopSpeak(); show('start'); };
+$('again').onclick = () => show('start');
+</script>
+</body>
+</html>
