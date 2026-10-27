@@ -9,6 +9,16 @@
 
 const LESESPUREN = [
   {
+    titel: "Der Fortnite-Fußball-Cup",
+    datei: "lesespuren/der-fortnite-fussball-cup.html",
+    thema: "Fußball und Fortnite",
+    fach: "Deutsch",
+    text: "Die JAMI 5/6 beim großen Turnier: Loot-Rallye, Sturm und Siegestanz. Fortnite musst du dafür nicht kennen!",
+    bild: "⚽",
+    stufen: ["▲", "●"],
+    neu: true,
+  },
+  {
     titel: "Der verschwundene Kürbis",
     datei: "lesespuren/der-verschwundene-kuerbis.html",
     thema: "Halloween an der Schule",
@@ -16,7 +26,6 @@ const LESESPUREN = [
     text: "Kurz vor dem Kürbiswettbewerb ist Kurt verschwunden! Folge der Spur durch die ganze Schule.",
     bild: "🎃",
     stufen: ["■", "▲", "●"],
-    neu: true,
   },
   {
     titel: "Das verschwundene Schwert",
