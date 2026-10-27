@@ -15,7 +15,7 @@ const LESESPUREN = [
     fach: "Deutsch · GPG",
     text: "Knappe Rakan soll Ritter werden – doch sein Schwert ist weg! Folge der Spur durch die Burg.",
     bild: "🏰",
-    stufen: ["★", "★★", "★★★"],
+    stufen: ["■", "▲", "●"],
     neu: true,
   },
 ];

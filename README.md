@@ -25,7 +25,7 @@ lesespuren/         die einzelnen Lesespuren als HTML-Dateien
   fach: "Deutsch",
   text: "Kurzer Satz, worum es geht.",
   bild: "🏴‍☠️",
-  stufen: ["★", "★★", "★★★"],
+  stufen: ["■", "▲", "●"],
   neu: true,
 },
 ```
