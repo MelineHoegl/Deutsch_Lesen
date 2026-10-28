@@ -1,0 +1,623 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Reisebüro Fernweh</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+<style>
+/* Layout: Draufsicht auf das Reisebüro (passt sich ins Fenster ein) + Seitenleiste mit Postkarten und Steuerkreuz; Prospekte als Overlay */
+:root{
+  --navy:#1f3a5f;
+  --navy-hi:#2c5282;
+  --sun:#f6b82e;
+  --coral:#ef6f5e;
+  --mint:#6cbfa6;
+  --sand:#f4e7cc;
+  --ink:#22252b;
+  --paper:#fffaf0;
+  --ok:#2f7d4a;
+  --display:"Baloo 2", "Arial Rounded MT Bold", "Trebuchet MS", sans-serif;
+  --body:"Atkinson Hyperlegible", "Helvetica Neue", Arial, sans-serif;
+  color-scheme:light;
+}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{
+  background:var(--navy);color:var(--paper);font-family:var(--body);margin:0;overflow:hidden;touch-action:manipulation;
+  -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;
+  padding-left:max(12px, env(safe-area-inset-left, 0px));padding-right:max(12px, env(safe-area-inset-right, 0px));
+}
+.app{height:100%;display:grid;grid-template-columns:minmax(0,1fr) 250px;gap:14px;padding-block:10px;box-sizing:border-box}
+@media (orientation:portrait){.app{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr) auto}}
+.stage{position:relative;min-width:0;min-height:0;display:flex;align-items:center;justify-content:center}
+#cv{display:block;border-radius:16px;box-shadow:0 0 0 4px var(--navy-hi),0 10px 0 4px #142740}
+.chip{position:absolute;left:14px;top:14px;background:var(--sun);color:var(--ink);border-radius:999px;padding:6px 16px;font-family:var(--display);font-weight:800;font-size:18px;box-shadow:0 3px 0 rgba(0,0,0,.25);max-width:calc(100% - 28px)}
+.toast{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);background:var(--paper);color:var(--ink);font-size:18px;font-weight:700;padding:10px 18px;border-radius:14px;max-width:86%;text-align:center;pointer-events:none;box-shadow:0 4px 0 rgba(0,0,0,.25)}
+.side{display:flex;flex-direction:column;gap:14px;justify-content:center;min-width:0}
+@media (orientation:portrait){.side{flex-direction:row;flex-wrap:wrap;justify-content:center;align-items:center;padding-bottom:6px}}
+.brand{font-family:var(--display);font-weight:800;font-size:28px;line-height:1;margin:0;color:var(--sun)}
+.brand small{display:block;font-family:var(--body);font-weight:400;font-size:14px;color:#b9cbe3;margin-top:6px}
+@media (orientation:portrait){.brand{display:none}}
+.level{font-family:var(--display);font-size:17px;color:#b9cbe3;text-align:center}
+.level b{color:var(--paper);font-size:22px}
+.cards{background:var(--paper);color:var(--ink);border-radius:12px;padding:10px 12px 12px;box-shadow:0 4px 0 #142740}
+.cards h3{font-family:var(--display);font-weight:800;margin:0 0 6px;font-size:17px;display:flex;justify-content:space-between;align-items:baseline}
+.cards h3 span{font-family:var(--body);font-size:14px;font-variant-numeric:tabular-nums}
+.pc-grid{display:grid;grid-template-columns:repeat(4,46px);gap:8px}
+.pc{width:46px;height:32px;border-radius:4px;border:2px dashed #c9b994;box-sizing:border-box;position:relative;display:grid;place-items:center;font-family:var(--display);font-weight:800;font-size:18px;color:transparent}
+.pc.full{border:0;color:var(--ink);box-shadow:0 2px 0 rgba(0,0,0,.2);transform:rotate(-3deg)}
+.pc.full::after{content:"";position:absolute;right:3px;top:3px;width:9px;height:11px;background:var(--coral);border-radius:1px}
+.dpad{display:grid;grid-template-columns:repeat(3,72px);grid-template-rows:repeat(3,72px);gap:6px;touch-action:none;align-self:center}
+.dpad button{font:inherit;border:0;border-radius:18px;background:var(--sun);color:var(--ink);font-size:30px;box-shadow:0 5px 0 #b9831a;touch-action:none;cursor:pointer;display:grid;place-items:center}
+.dpad button.on{transform:translateY(4px);box-shadow:0 1px 0 #b9831a;background:#ffcd59}
+.dpad button:focus-visible{outline:3px solid var(--paper);outline-offset:2px}
+.dpad .hub{border-radius:50%;background:var(--navy-hi);margin:14px}
+
+/* Prospekt */
+.overlay{position:fixed;inset:0;background:rgba(15,28,46,.72);display:flex;align-items:center;justify-content:center;z-index:20;
+  padding-left:max(14px, env(safe-area-inset-left, 0px));padding-right:max(14px, env(safe-area-inset-right, 0px));
+  padding-block:max(14px, env(safe-area-inset-top, 0px)) max(14px, env(safe-area-inset-bottom, 0px));box-sizing:border-box}
+.page{width:min(720px,100%);max-height:100%;overflow-y:auto;-webkit-overflow-scrolling:touch;box-sizing:border-box;background:var(--paper);color:var(--ink);border-radius:18px;box-shadow:0 12px 30px rgba(0,0,0,.4);user-select:text;-webkit-user-select:text}
+.hero{position:relative;padding:22px 26px 18px;display:flex;gap:16px;align-items:center;border-radius:18px 18px 0 0;background:var(--band,#8fc9e6)}
+.hero svg{width:96px;height:96px;flex:none}
+.hero .kicker{font-family:var(--display);font-weight:700;font-size:15px;letter-spacing:.06em;text-transform:uppercase;margin:0;opacity:.85}
+.hero h2{font-family:var(--display);font-weight:800;font-size:clamp(26px,4.4vw,36px);line-height:1.05;margin:2px 0 0;text-wrap:balance}
+.body{padding:20px 26px 26px;display:flex;flex-direction:column;gap:16px}
+.page h1{font-family:var(--display);font-weight:800;font-size:clamp(32px,5vw,46px);line-height:1;margin:0;text-wrap:balance}
+.page h2.plain{font-family:var(--display);font-weight:800;font-size:clamp(26px,4vw,34px);line-height:1.05;margin:0}
+.eyebrow{font-family:var(--display);font-weight:700;font-size:15px;letter-spacing:.08em;text-transform:uppercase;color:var(--coral);margin:0}
+.text{font-size:20px;line-height:1.65;max-width:62ch;columns:1}
+.text p{margin:0 0 .7em}.text p:last-child{margin:0}
+.lead{font-size:20px;line-height:1.55;margin:0;max-width:62ch}
+.qbox{border-top:3px dotted var(--ink);padding-top:14px;display:flex;flex-direction:column;gap:10px}
+.qnum{font-family:var(--display);font-weight:700;font-size:15px;color:#6a6658;margin:0;letter-spacing:.05em;text-transform:uppercase}
+.q{font-weight:700;font-size:21px;line-height:1.4;margin:0}
+.speech{background:#eaf4fb;border-radius:18px 18px 18px 4px;padding:14px 18px;font-size:20px;line-height:1.5;margin:0;position:relative}
+.who{font-family:var(--display);font-weight:800;font-size:18px;margin:0}
+.btn{font-family:var(--body);font-size:19px;line-height:1.35;text-align:left;cursor:pointer;color:var(--ink);background:#fff;border:2px solid var(--ink);border-radius:14px;padding:14px 16px;min-height:56px;box-shadow:0 4px 0 var(--ink)}
+.btn:active{transform:translateY(3px);box-shadow:0 1px 0 var(--ink)}
+.btn:focus-visible{outline:3px solid var(--coral);outline-offset:2px}
+.btn:disabled{cursor:default}
+.btn.wrong{background:#fbd5cf;text-decoration:line-through;box-shadow:none;transform:translateY(3px)}
+.btn.right{background:#cdeccd;box-shadow:none;transform:translateY(3px)}
+.btn.primary{background:var(--coral);color:#fff;border-color:#a8402f;box-shadow:0 4px 0 #a8402f;font-family:var(--display);font-weight:800;font-size:22px;text-align:center}
+.answers{display:flex;flex-direction:column;gap:10px}
+.feedback{font-size:19px;font-weight:700;margin:0;padding:10px 14px;border-radius:12px}
+.feedback.bad{background:#fde0db;color:#80271a}
+.feedback.good{background:#d6efd6;color:#1d5a32}
+.hint{font-size:18px;background:#fff1b8;border:2px dashed var(--ink);border-radius:12px;padding:10px 14px;margin:0}
+.levels{display:flex;gap:16px;flex-wrap:wrap}
+.levels .btn{flex:1 1 200px;text-align:center;font-family:var(--display);font-weight:800;font-size:22px;padding:18px}
+.levels .shape{display:block;font-size:54px;line-height:1;margin-bottom:4px;font-family:var(--body)}
+.postcard{align-self:center;width:min(300px,90%);aspect-ratio:3/2;border-radius:8px;background:var(--band,#8fc9e6);box-shadow:0 8px 0 rgba(0,0,0,.15);position:relative;transform:rotate(-4deg);animation:fly .5s ease-out;display:flex;align-items:flex-end;padding:14px;box-sizing:border-box;overflow:hidden}
+.postcard svg{position:absolute;inset:0;width:100%;height:100%}
+.postcard .gruss{position:relative;font-family:var(--display);font-weight:800;font-size:24px;color:var(--ink);background:rgba(255,250,240,.9);border-radius:8px;padding:2px 10px}
+.postcard .marke{position:absolute;right:12px;top:12px;width:52px;height:62px;background:var(--paper);border:3px dotted var(--coral);display:grid;place-items:center;font-family:var(--display);font-weight:800;font-size:34px;color:var(--coral)}
+@keyframes fly{0%{transform:translateY(40px) rotate(8deg);opacity:0}100%{transform:rotate(-4deg);opacity:1}}
+.word{display:flex;gap:6px;flex-wrap:wrap}
+.word .pc{width:52px;height:52px;font-size:28px}
+.word .pc.full::after{display:none}
+.letters{display:flex;gap:10px;flex-wrap:wrap}
+.letters .btn{width:60px;height:60px;padding:0;text-align:center;font-family:var(--display);font-weight:800;font-size:28px}
+.letters .btn:disabled{opacity:.25}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+.row .btn{flex:1 1 170px;text-align:center}
+.stats{font-family:var(--display);font-weight:700;font-size:20px;display:grid;grid-template-columns:auto auto;gap:4px 20px;justify-content:start;font-variant-numeric:tabular-nums}
+.shake{animation:shake .35s}
+@keyframes shake{25%{transform:translateX(-8px)}50%{transform:translateX(8px)}75%{transform:translateX(-4px)}}
+@media (prefers-reduced-motion:reduce){.shake,.postcard{animation:none}}
+@media (max-width:620px){
+  .dpad{grid-template-columns:repeat(3,62px);grid-template-rows:repeat(3,62px)}
+  .pc-grid{grid-template-columns:repeat(7,36px);gap:5px}.pc{width:36px;height:26px;font-size:15px}
+  .hero{padding:16px 18px}.hero svg{width:70px;height:70px}.body{padding:16px 18px 20px}.text{font-size:18px}
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="stage" id="stage">
+    <canvas id="cv" aria-label="Das Reisebüro von oben"></canvas>
+    <div class="chip" id="chip">Lies die Prospekte!</div>
+    <div class="toast" id="toast" hidden></div>
+  </div>
+  <div class="side">
+    <p class="brand">Reisebüro Fernweh<small>Lesespur · Tourismus in Europa</small></p>
+    <div class="level" id="level">Stufe <b>–</b></div>
+    <div class="cards">
+      <h3>Postkarten <span id="count">0 / 7</span></h3>
+      <div class="pc-grid" id="pcs"></div>
+    </div>
+    <div class="dpad" id="dpad">
+      <span></span><button data-d="up" aria-label="nach oben">▲</button><span></span>
+      <button data-d="left" aria-label="nach links">◀</button><span class="hub"></span><button data-d="right" aria-label="nach rechts">▶</button>
+      <span></span><button data-d="down" aria-label="nach unten">▼</button><span></span>
+    </div>
+  </div>
+</div>
+<div class="overlay" id="overlay"><div class="page" id="page"></div></div>
+
+<script>
+(function(){
+"use strict";
+
+/* =========================================================
+   1) INHALTE
+   ========================================================= */
+const ART={
+ globe:'<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="#5aa9d6"/><path d="M28 30c8-4 14 2 20-2s10 4 8 10-10 6-12 12-8 10-14 6-8-12-4-18 0-6 2-8zM62 56c6-2 12 2 12 8s-6 12-12 10-4-16 0-18z" fill="#7fc18a"/><circle cx="50" cy="50" r="40" fill="none" stroke="#22252b" stroke-width="4"/><path d="M70 16l6-8 4 10" fill="#ef6f5e" stroke="#22252b" stroke-width="3"/></svg>',
+ beach:'<svg viewBox="0 0 100 100"><circle cx="70" cy="30" r="16" fill="#f6b82e" stroke="#22252b" stroke-width="3"/><path d="M0 62q12-8 25 0t25 0 25 0 25 0v38H0z" fill="#3f8fc4"/><path d="M0 74q12-8 25 0t25 0 25 0 25 0v26H0z" fill="#2a6fa3"/><path d="M22 60l4-34" stroke="#7a4a22" stroke-width="5"/><path d="M26 26q-14-6-22 4 12-2 22-4 4-12 18-12-10 6-18 12 16-4 22 6-12-6-22-6" fill="#3c9a5a" stroke="#22252b" stroke-width="2"/></svg>',
+ crowd:'<svg viewBox="0 0 100 100"><rect x="8" y="30" width="22" height="44" fill="#f4e7cc" stroke="#22252b" stroke-width="3"/><rect x="34" y="18" width="26" height="56" fill="#fffaf0" stroke="#22252b" stroke-width="3"/><rect x="64" y="34" width="26" height="40" fill="#f4e7cc" stroke="#22252b" stroke-width="3"/><g fill="#22252b"><rect x="40" y="26" width="5" height="6"/><rect x="50" y="26" width="5" height="6"/><rect x="40" y="40" width="5" height="6"/><rect x="50" y="40" width="5" height="6"/></g><path d="M0 80h100v20H0z" fill="#3f8fc4"/><circle cx="18" cy="86" r="5" fill="#ef6f5e"/><circle cx="34" cy="88" r="5" fill="#f6b82e"/><circle cx="50" cy="86" r="5" fill="#6cbfa6"/><circle cx="66" cy="88" r="5" fill="#ef6f5e"/><circle cx="82" cy="86" r="5" fill="#f6b82e"/></svg>',
+ summit:'<svg viewBox="0 0 100 100"><circle cx="78" cy="22" r="10" fill="#f6b82e"/><path d="M0 84l30-46 16 22 16-30 38 54z" fill="#5b9c6a" stroke="#22252b" stroke-width="3"/><path d="M62 30l8 12-8-3-7 5z" fill="#fffaf0"/><path d="M20 84c10-10 16-6 22-14s14-4 20-12" fill="none" stroke="#c9a46a" stroke-width="3" stroke-dasharray="4 4"/><rect x="44" y="64" width="12" height="10" fill="#b5652f" stroke="#22252b" stroke-width="2"/><path d="M42 64l8-7 8 7z" fill="#ef6f5e" stroke="#22252b" stroke-width="2"/></svg>',
+ snow:'<svg viewBox="0 0 100 100"><path d="M0 86l28-52 18 26 18-38 36 64z" fill="#e9f2fa" stroke="#22252b" stroke-width="3"/><path d="M0 86h100v14H0z" fill="#fff"/><path d="M60 30l26 56" stroke="#22252b" stroke-width="2"/><rect x="70" y="50" width="10" height="8" fill="#ef6f5e" stroke="#22252b" stroke-width="2"/><path d="M14 74l14-10" stroke="#22252b" stroke-width="3"/><path d="M14 70h20" stroke="#22252b" stroke-width="2"/><g stroke="#5aa9d6" stroke-width="3"><path d="M20 22v16M12 30h16M14 24l12 12M26 24 14 36"/></g></svg>',
+ venice:'<svg viewBox="0 0 100 100"><rect x="0" y="0" width="100" height="62" fill="#f8d9a8"/><path d="M8 62V30h22v32M38 62V20h24v42M70 62V34h22v28" fill="#ef9a6e" stroke="#22252b" stroke-width="3"/><path d="M43 62v-14a7 7 0 0114 0v14" fill="#22252b"/><path d="M0 62h100v38H0z" fill="#3f8fc4"/><path d="M18 78q30 10 60 0l-4 6q-26 8-52 0z" fill="#22252b"/><path d="M78 78l8-6" stroke="#22252b" stroke-width="3"/><path d="M30 76l2-18" stroke="#7a4a22" stroke-width="3"/></svg>',
+ leaf:'<svg viewBox="0 0 100 100"><path d="M10 74h80" stroke="#22252b" stroke-width="3"/><rect x="14" y="52" width="52" height="20" rx="6" fill="#ef6f5e" stroke="#22252b" stroke-width="3"/><rect x="20" y="56" width="10" height="8" fill="#eaf4fb"/><rect x="34" y="56" width="10" height="8" fill="#eaf4fb"/><rect x="48" y="56" width="10" height="8" fill="#eaf4fb"/><circle cx="24" cy="74" r="4" fill="#22252b"/><circle cx="56" cy="74" r="4" fill="#22252b"/><path d="M76 66c-18-4-16-34 14-42 4 30-6 40-14 42z" fill="#7fb069" stroke="#22252b" stroke-width="3"/><path d="M76 66c4-12 8-22 12-36" stroke="#22252b" stroke-width="2" fill="none"/></svg>'
+};
+
+const BRO=[
+ {id:1,letter:"F",band:"#8fc9e6",art:"globe",kicker:"Reiseideen",title:"Urlaub in Europa",short:"Reiseideen",
+  t2:["Europa ist ein beliebtes Ziel für Urlauber aus der ganzen Welt. Viele Menschen machen auch innerhalb von Europa Urlaub.",
+      "Es gibt verschiedene Arten von Urlaub. Beim Badeurlaub liegen die Gäste am Strand und baden im Meer, zum Beispiel am Mittelmeer.",
+      "Beim Bergurlaub fahren die Menschen in die Alpen. Im Sommer wandern sie, im Winter fahren sie Ski.",
+      "Bei einer Städtereise besucht man eine Stadt wie Paris, Rom oder Venedig. Man schaut sich Kirchen, Museen und Plätze an.",
+      "In keinem Land in Europa übernachten so viele Gäste aus dem Ausland wie in Spanien. Danach kommen Italien und die Türkei."],
+  q2:[{q:"Was macht man bei einer Städtereise?",a:["Man besichtigt eine Stadt mit Kirchen, Museen und Plätzen.","Man liegt am Strand und badet.","Man fährt Ski."],h:"Lies den vierten Absatz."},
+      {q:"In welchem Land übernachten die meisten Gäste aus dem Ausland?",a:["in Spanien","in Italien","in Deutschland"],h:"Lies den letzten Absatz."}],
+  t3:["Europa ist die Weltregion, die am meisten Touristen anzieht. Etwa die Hälfte aller Reisen ins Ausland auf der Welt führt nach Europa.",
+      "Im Jahr 2025 übernachteten Gäste aus dem Ausland in Spanien rund 330 Millionen Mal. Dahinter folgen Italien (265 Millionen) und die Türkei (155 Millionen). Deutschland liegt mit rund 84 Millionen auf Platz neun.",
+      "Man unterscheidet verschiedene Urlaubsarten: Badeurlaub am Meer, Bergurlaub im Gebirge, Städtereisen und Naturreisen, zum Beispiel zu den Fjorden in Norwegen.",
+      "Tourismus bringt Geld und Arbeitsplätze. Er kann aber auch Probleme machen, für die Natur und für die Menschen, die dort wohnen. Fachleute schauen deshalb immer auf drei Seiten: die Wirtschaft (ökonomisch), die Umwelt (ökologisch) und die Menschen (sozial)."],
+  q3:[{q:"Welches Land liegt bei den Übernachtungen hinter Italien, aber noch vor Deutschland?",a:["die Türkei","Spanien","Norwegen"],h:"Lies den zweiten Absatz und ordne die Zahlen."},
+      {q:"Ein Bauer erzählt: „Seit das große Hotel gebaut wurde, ist unser Bach verschmutzt.“ Welche Seite des Tourismus ist betroffen?",a:["die ökologische Seite (Umwelt)","die ökonomische Seite (Wirtschaft)","die soziale Seite (Menschen)"],h:"Lies den letzten Absatz: Welche Seite gehört zur Natur?"}]
+ },
+ {id:2,letter:"E",band:"#f6c75a",art:"beach",kicker:"Badeurlaub",title:"Mallorca: Sonne, Strand und Arbeit",short:"Mallorca 1",
+  t2:["Mallorca ist eine Insel im Mittelmeer. Sie gehört zu Spanien.",
+      "Im Sommer scheint dort fast jeden Tag die Sonne. Es gibt schöne Strände und warmes Wasser. Von Nürnberg oder München fliegt man nur rund zwei Stunden.",
+      "Jedes Jahr kommen viele Millionen Urlauber nach Mallorca. Besonders viele kommen aus Deutschland.",
+      "Die Urlauber brauchen Hotels, Restaurants, Mietautos und Ausflüge. Darum arbeiten sehr viele Menschen auf Mallorca im Tourismus. Der Tourismus bringt der Insel viel Geld."],
+  q2:[{q:"Zu welchem Land gehört Mallorca?",a:["zu Spanien","zu Italien","zu Griechenland"],h:"Lies den ersten Absatz."},
+      {q:"Warum arbeiten so viele Menschen auf Mallorca im Tourismus?",a:["Die Urlauber brauchen Hotels, Restaurants und Ausflüge.","Auf Mallorca gibt es sehr viele Fabriken.","Auf Mallorca gibt es keine Strände."],h:"Lies den letzten Absatz."}],
+  t3:["Mallorca ist die größte Insel der Balearen und gehört zu Spanien. Das Mittelmeerklima mit heißen, trockenen Sommern, lange Sandstrände und warmes Wasser machen die Insel zu einem der beliebtesten Reiseziele Europas.",
+      "Jedes Jahr besuchen über zehn Millionen Urlauber die Insel, die meisten aus Deutschland und Großbritannien. Zum Vergleich: Auf Mallorca wohnen knapp eine Million Menschen.",
+      "Für die Wirtschaft der Insel ist der Tourismus am wichtigsten. Hotels, Restaurants, Taxis, Bootsausflüge und Geschäfte leben von den Gästen. Sehr viele Menschen auf Mallorca arbeiten direkt oder indirekt für den Tourismus.",
+      "Das Problem: Im Winter kommen viel weniger Gäste. Viele Hotels schließen dann, und manche Beschäftigte haben nur im Sommer Arbeit."],
+  q3:[{q:"Wie viele Urlauber kommen auf Mallorca ungefähr auf einen Einwohner?",a:["mehr als zehn Urlauber im Jahr","etwa ein Urlauber im Jahr","weniger als ein Urlauber im Jahr"],h:"Vergleiche die Zahlen im zweiten Absatz: zehn Millionen und eine Million."},
+      {q:"Warum ist es für eine Kellnerin auf Mallorca schwierig, das ganze Jahr Geld zu verdienen?",a:["Im Winter kommen wenig Gäste, und viele Hotels schließen.","Im Sommer ist es zu heiß zum Arbeiten.","Die Urlauber essen nur in ihren Ferienwohnungen."],h:"Lies den letzten Absatz."}]
+ },
+ {id:3,letter:"R",band:"#f39a8c",art:"crowd",kicker:"Badeurlaub",title:"Mallorca: die andere Seite",short:"Mallorca 2",
+  t2:["Viele Urlauber brauchen viel Wasser. Sie duschen, baden im Pool, und die Hotels gießen ihre Gärten. Auf Mallorca regnet es im Sommer aber kaum. Das Wasser wird knapp.",
+      "Viele Urlauber bedeuten auch viel Müll und viel Verkehr.",
+      "Für die Menschen, die auf Mallorca wohnen, wird es schwierig. Viele Wohnungen werden an Urlauber vermietet. Darum sind die Mieten sehr teuer geworden.",
+      "Deshalb haben in den letzten Jahren viele Einwohner demonstriert. Sie wollen, dass weniger Urlauber kommen."],
+  q2:[{q:"Warum wird auf Mallorca das Wasser knapp?",a:["Urlauber brauchen viel Wasser, und im Sommer regnet es kaum.","Das Meer ist zu salzig zum Baden.","Die Hotels verkaufen das Wasser in andere Länder."],h:"Lies den ersten Absatz."},
+      {q:"Warum haben viele Einwohner demonstriert?",a:["Sie wollen, dass weniger Urlauber kommen.","Sie wollen mehr Hotels.","Sie wollen, dass es öfter regnet."],h:"Lies den letzten Absatz."}],
+  t3:["Massentourismus hat Folgen für die Umwelt. Ein Hotelgast verbraucht oft deutlich mehr Wasser als ein Einwohner, zum Beispiel für Pools, Gärten und Golfplätze. Weil es im Sommer kaum regnet, wird das Wasser knapp.",
+      "Dazu kommen Müll, Abwasser, Lärm und Verkehr. Fast alle Gäste kommen mit dem Flugzeug, und das schadet dem Klima. Viele Küsten sind mit Hotels zugebaut.",
+      "Auch für die Menschen auf der Insel gibt es Probleme. Viele Wohnungen werden als Ferienwohnungen an Urlauber vermietet. Dadurch steigen die Mieten so stark, dass sich manche Einheimische, etwa Lehrkräfte oder Pflegekräfte, keine Wohnung mehr leisten können.",
+      "In den Jahren 2024 und 2025 gingen deshalb Zehntausende Menschen auf die Straße. Ihr Motto lautete: „Mallorca steht nicht zum Verkauf.“ Sie fordern, die Zahl der Urlauber zu begrenzen."],
+  q3:[{q:"Welches Problem ist ein soziales Problem, betrifft also die Menschen?",a:["Einheimische finden keine bezahlbare Wohnung mehr.","Das Grundwasser wird knapp.","Flugzeuge schaden dem Klima."],h:"Sozial heißt: Es geht um das Leben der Menschen vor Ort. Lies den dritten Absatz."},
+      {q:"Was bedeutet das Motto „Mallorca steht nicht zum Verkauf“?",a:["Die Insel soll nicht nur für Urlauber und Geld da sein.","Auf Mallorca darf man nichts einkaufen.","Die Insel soll an ein anderes Land verkauft werden."],h:"Was wollen die Menschen, die demonstrieren?"}]
+ },
+ {id:4,letter:"N",band:"#8fd1a8",art:"summit",kicker:"Bergurlaub",title:"Die Alpen im Sommer",short:"Alpen Sommer",
+  t2:["Die Alpen sind ein beliebtes Urlaubsziel. Jedes Jahr kommen rund 100 Millionen Besucher.",
+      "Im Sommer wandern viele Menschen auf Bergwegen. Sie übernachten in Berghütten und genießen die frische Luft und die Aussicht.",
+      "Manche klettern, fahren Mountainbike oder baden in den klaren Bergseen.",
+      "Mit Seilbahnen kommt man auch ohne lange Wanderung auf hohe Berge, zum Beispiel auf die Zugspitze."],
+  q2:[{q:"Wo übernachten Wanderer in den Bergen oft?",a:["in Berghütten","in Strandhotels","auf Schiffen"],h:"Lies den zweiten Absatz."},
+      {q:"Wie viele Besucher kommen jedes Jahr in die Alpen?",a:["rund 100 Millionen","rund 100 000","rund 1 000"],h:"Lies den ersten Absatz."}],
+  t3:["Die Alpen gehören zu den wichtigsten Urlaubsregionen der Welt. Rund 100 Millionen Menschen besuchen sie jedes Jahr. Viele kommen nur für einen Tag, zum Beispiel aus München.",
+      "Im Sommer locken Wandern, Klettern, Mountainbiken und Baden in Bergseen. Übernachtet wird in Hotels, Ferienwohnungen oder Berghütten. Viele Bergdörfer leben fast nur vom Tourismus.",
+      "Die meisten Gäste reisen mit dem Auto an. An schönen Wochenenden gibt es deshalb lange Staus, und die Parkplätze an den Bergen sind voll. Lärm und Abgase stören Menschen und Tiere.",
+      "Immer mehr Orte bauen große Attraktionen wie Hängebrücken oder Aussichtsplattformen. Naturschützer warnen: Die Berglandschaft darf nicht zum Freizeitpark werden."],
+  q3:[{q:"Warum gibt es an schönen Wochenenden in den Alpen oft Stau?",a:["Die meisten Gäste kommen mit dem Auto, viele nur für einen Tag.","Die Berghütten sind am Wochenende geschlossen.","Es gibt zu wenige Seilbahnen."],h:"Lies den ersten und den dritten Absatz."},
+      {q:"Was befürchten Naturschützer?",a:["Dass die Berge durch immer mehr Attraktionen zum Freizeitpark werden.","Dass zu wenige Menschen wandern gehen.","Dass die Bergseen zu kalt zum Baden sind."],h:"Lies den letzten Absatz."}]
+ },
+ {id:5,letter:"W",band:"#b9d6f0",art:"snow",kicker:"Bergurlaub",title:"Die Alpen im Winter",short:"Alpen Winter",
+  t2:["Im Winter fahren viele Menschen zum Skifahren in die Alpen. Lifte bringen sie auf den Berg. Dann fahren sie auf Pisten ins Tal.",
+      "Weil es auf der Erde wärmer wird, gibt es in vielen Skigebieten weniger Schnee. Das gilt besonders für Skigebiete, die nicht so hoch liegen.",
+      "Darum machen viele Skigebiete Kunstschnee mit Schneekanonen. Dafür braucht man viel Wasser und viel Strom.",
+      "Manche kleinen Skigebiete mussten schon schließen. Sie bieten jetzt im Winter Wandern oder Rodeln an."],
+  q2:[{q:"Was braucht man für Kunstschnee?",a:["viel Wasser und viel Strom","viel Sand und Salz","nur kalten Wind"],h:"Lies den dritten Absatz."},
+      {q:"Warum gibt es in vielen Skigebieten weniger Schnee?",a:["Weil es auf der Erde wärmer wird.","Weil die Lifte den Schnee wegtragen.","Weil zu viele Menschen Ski fahren."],h:"Lies den zweiten Absatz."}],
+  t3:["Für viele Alpenorte ist der Winter die wichtigste Zeit. Skigebiete mit Liften, Pisten, Hotels und Skischulen bringen viel Geld und sichern Arbeitsplätze.",
+      "Doch der Klimawandel verändert die Alpen. Die Schneefallgrenze steigt, und die Winter werden kürzer. Gerade Skigebiete in niedrigen Lagen haben oft zu wenig Schnee.",
+      "Viele Gebiete setzen deshalb Schneekanonen ein. Kunstschnee braucht viel Wasser und Energie. Für das Wasser werden oft Speicherseen in die Berge gebaut.",
+      "Einige Orte gehen einen anderen Weg. Sie setzen auf Winterwandern, Rodeln oder Schneeschuhtouren, die weniger Schnee brauchen. Der Deutsche Alpenverein fordert, keine neuen Skigebiete mehr zu bauen."],
+  q3:[{q:"Ein Skigebiet liegt nur auf 800 Metern Höhe. Was ist für die Zukunft wahrscheinlich?",a:["Es wird immer öfter zu wenig Schnee haben.","Es wird mehr Schnee bekommen als hohe Skigebiete.","Es braucht nie wieder Schneekanonen."],h:"Lies den zweiten Absatz: Welche Skigebiete haben besonders oft zu wenig Schnee?"},
+      {q:"Kunstschnee hilft dem Skigebiet, aber er hat auch Nachteile. Welcher Nachteil ist ökologisch?",a:["Er verbraucht viel Wasser und Energie.","Die Skipässe werden billiger.","Die Skilehrer verdienen weniger."],h:"Ökologisch heißt: Es geht um die Umwelt."}]
+ },
+ {id:6,letter:"E",band:"#d4b5e8",art:"venice",kicker:"Städtereise",title:"Venedig: die Stadt auf dem Wasser",short:"Venedig",
+  t2:["Venedig ist eine berühmte Stadt in Italien. Sie ist auf vielen kleinen Inseln gebaut. Statt Straßen gibt es Kanäle. Die Menschen fahren mit Booten.",
+      "Jedes Jahr kommen sehr viele Touristen nach Venedig. Viele bleiben nur einen Tag. In den engen Gassen gibt es dann großes Gedränge.",
+      "Für die Menschen, die dort wohnen, ist das anstrengend. Viele sind schon weggezogen.",
+      "Darum müssen Tagestouristen an manchen Tagen Eintritt bezahlen. Im Jahr 2026 kostete das 5 oder 10 Euro."],
+  q2:[{q:"Womit fahren die Menschen in Venedig?",a:["mit Booten","mit der U-Bahn","mit dem Fahrrad"],h:"Lies den ersten Absatz."},
+      {q:"Wer muss in Venedig an manchen Tagen Eintritt bezahlen?",a:["Tagestouristen","alle Einwohner","Kinder aus Venedig"],h:"Lies den letzten Absatz."}],
+  t3:["Venedig liegt in einer Lagune an der Adria und ist auf über 100 kleinen Inseln gebaut. Statt Straßen gibt es Kanäle, statt Autos Boote. Die Stadt gehört zum Welterbe der UNESCO.",
+      "In der Altstadt leben heute nur noch knapp 50 000 Menschen. Vor rund 70 Jahren waren es mehr als dreimal so viele.",
+      "An vielen Tagen sind mehr Touristen in der Stadt, als dort Menschen wohnen. Viele sind Tagesgäste, die abends wieder abreisen. Sie geben wenig Geld aus, sorgen aber für volle Gassen und Müll. Fachleute nennen das „Overtourism“, also zu viel Tourismus.",
+      "Seit 2024 verlangt Venedig an ausgewählten Tagen Eintritt von Tagesgästen. 2026 waren es 60 Tage. Wer früh buchte, zahlte 5 Euro, sonst 10 Euro. Rund 650 000 Menschen haben bezahlt. Für die Zukunft wird über deutlich höhere Preise gestritten."],
+  q3:[{q:"Warum bringen Tagesgäste der Stadt oft wenig, obwohl sie so viele sind?",a:["Sie übernachten nicht und geben wenig Geld aus, sorgen aber für Gedränge und Müll.","Sie dürfen in Venedig nichts kaufen.","Sie fahren nur mit eigenen Booten."],h:"Lies den dritten Absatz."},
+      {q:"Was will Venedig mit der Eintrittsgebühr wahrscheinlich erreichen?",a:["weniger Gedränge an vollen Tagen und Geld für die Stadt","dass noch mehr Menschen aus Venedig wegziehen","dass mehr Tagesgäste kommen"],h:"Überlege: Was ist in Venedig das Problem? Was ändert sich, wenn man bezahlen muss?"}]
+ },
+ {id:7,letter:"H",band:"#a9d48a",art:"leaf",kicker:"Gut reisen",title:"Sanfter Tourismus",short:"Sanft reisen",
+  t2:["Man kann Urlaub machen und trotzdem auf die Natur und die Menschen achten. Das nennt man sanften Tourismus.",
+      "Erster Tipp: Mit dem Zug oder dem Bus anreisen statt mit dem Flugzeug oder dem Auto. Das ist besser für das Klima.",
+      "Zweiter Tipp: Außerhalb der Ferien verreisen. Dann ist es an den Urlaubsorten nicht so voll.",
+      "Dritter Tipp: In kleinen Gasthäusern übernachten und Essen aus der Gegend kaufen. So bleibt das Geld bei den Menschen vor Ort."],
+  q2:[{q:"Was ist sanfter Tourismus?",a:["Urlaub, bei dem man auf Natur und Menschen achtet","Urlaub, bei dem man nur im weichen Bett liegt","Urlaub, bei dem man möglichst weit fliegt"],h:"Lies den ersten Absatz."},
+      {q:"Warum soll man in kleinen Gasthäusern übernachten?",a:["Damit das Geld bei den Menschen vor Ort bleibt.","Weil große Hotels verboten sind.","Weil es dort keinen Strom gibt."],h:"Lies den dritten Tipp."}],
+  t3:["Sanfter Tourismus bedeutet, Urlaub so zu machen, dass die Natur geschützt wird, die Einheimischen gut leben können und der Ort trotzdem Geld verdient. Alle drei Seiten sollen beachtet werden.",
+      "Ein großer Teil der Klimabelastung einer Reise entsteht bei der Anreise. Wer mit Bahn oder Bus fährt, statt zu fliegen, schont das Klima deutlich.",
+      "In den Alpen gibt es sogenannte Bergsteigerdörfer. Sie verzichten bewusst auf große Skigebiete und riesige Hotels. Stattdessen bieten sie Wandern, Klettern und gemütliche Gasthäuser an.",
+      "Auch die Reisezeit spielt eine Rolle. Wer außerhalb der Hauptsaison reist, verteilt die Gäste besser über das Jahr. Dann gibt es weniger Gedränge, und die Menschen vor Ort haben länger Arbeit."],
+  q3:[{q:"Warum hilft es, außerhalb der Hauptsaison zu reisen? Finde den Vorteil für die Menschen vor Ort.",a:["Sie haben länger im Jahr Arbeit.","Sie müssen weniger Steuern zahlen.","Sie können selbst öfter in den Urlaub fliegen."],h:"Lies den letzten Absatz."},
+      {q:"Welcher Urlaub passt am besten zum sanften Tourismus?",a:["Mit der Bahn in ein Bergsteigerdorf fahren und in einem kleinen Gasthaus wohnen","Für ein Wochenende nach Mallorca fliegen","Mit dem Auto jeden Tag zu einer anderen Hängebrücke fahren"],h:"Prüfe alle drei Seiten: Anreise, Unterkunft, Natur."}]
+ }
+];
+const CUSTOMERS=[
+ {name:"Familie Huber",col:"#ef6f5e",say:"Wir möchten im Juli wandern und in einer Berghütte schlafen. Fliegen wollen wir nicht.",
+  a:["Wanderurlaub in den Alpen, Anreise mit der Bahn","Badeurlaub auf Mallorca","Städtereise nach Venedig"],h:"Wo kann man wandern und in Hütten schlafen? Lies noch einmal den Prospekt „Alpen im Sommer“."},
+ {name:"Herr Demir",col:"#6cbfa6",say:"Ich möchte Kunst, Kirchen und Kanäle sehen. Aber ich mag kein großes Gedränge.",
+  a:["Mehrere Tage Venedig im November, mit Übernachtung","Ein Tagesausflug nach Venedig an einem Samstag im August","Skiurlaub in den Alpen"],h:"Wo gibt es Kanäle? Und wann ist es dort weniger voll?"},
+ {name:"Frau Kaya",col:"#f6b82e",say:"Ich will Sonne, Meer und warmes Wasser. Aber ich möchte die Insel nicht noch voller machen.",
+  a:["Mallorca im Mai, in einem kleinen Gasthaus","Mallorca im August, in einer Ferienwohnung mitten in Palma","Skifahren in den Alpen"],h:"Wann ist auf Mallorca nicht Hauptsaison? Und wo bleibt das Geld bei den Menschen vor Ort?"}
+];
+const CUST_EXTRA={name:"Klasse 6b",col:"#8fc9e6",say:"Wir wollen eine Woche Ski fahren. Aber unsere Reise soll so umweltfreundlich wie möglich sein.",
+  a:["Ein hoch gelegenes Skigebiet, Anreise mit dem Zug","Ein Skigebiet auf 800 Metern mit vielen Schneekanonen, Anreise mit vielen Autos","Ein neues Skigebiet auf einem Berg, auf dem es bisher keine Lifte gab"],h:"Denke an den Prospekt „Alpen im Winter“: Schnee, Kunstschnee, neue Skigebiete und die Anreise."};
+const WORD="FERNWEH";
+
+/* =========================================================
+   2) RAUM
+   ========================================================= */
+const RW=960,RH=640,WALL=28;
+const racks=[
+ {id:1,x:150,y:WALL,w:120,h:46,face:"down"},
+ {id:2,x:WALL,y:160,w:46,h:110,face:"right"},
+ {id:3,x:WALL,y:310,w:46,h:110,face:"right"},
+ {id:6,x:WALL,y:460,w:46,h:110,face:"right"},
+ {id:4,x:RW-WALL-46,y:160,w:46,h:110,face:"left"},
+ {id:5,x:RW-WALL-46,y:310,w:46,h:110,face:"left"},
+ {id:7,x:RW-WALL-46,y:460,w:46,h:110,face:"left"}
+];
+racks.forEach(r=>{const b=BRO[r.id-1];r.b=b;
+  if(r.face==="down"){r.tx=r.x+r.w/2;r.ty=r.y+r.h+46;}
+  if(r.face==="right"){r.tx=r.x+r.w+26;r.ty=r.y+r.h/2;}
+  if(r.face==="left"){r.tx=r.x-26;r.ty=r.y+r.h/2;}
+  r.armed=true;});
+const counter={x:380,y:WALL+34,w:220,h:58};
+const counterSpot={x:490,y:counter.y+counter.h+30};
+const obstacles=[
+ counter,
+ {x:410,y:WALL,w:160,h:34},         /* Bürostuhl-Bereich hinter Theke */
+ ...racks.map(r=>({x:r.x,y:r.y,w:r.w,h:r.h})),
+ {x:438,y:318,w:84,h:52},           /* Couchtisch */
+ {x:345,y:300,w:62,h:62},{x:553,y:300,w:62,h:62},   /* Sessel */
+ {x:RW-WALL-110,y:WALL,w:72,h:72},  /* Pflanze oben rechts */
+ {x:WALL,y:WALL,w:62,h:62},         /* Pflanze oben links */
+ {x:690,y:WALL,w:120,h:40}          /* Sofa-Bank */
+];
+const DOOR={x:RW/2-60,w:120};
+
+/* =========================================================
+   3) ZUSTAND
+   ========================================================= */
+const state={level:null,solved:{},order:[],wrong:0,start:0,done:false,custDone:false};
+const kid={x:490,y:470,ang:-Math.PI/2,step:0};
+let counterArmed=true;
+const pressed=new Set();let overlayOpen=true,lastT=0,toastTimer=null;
+
+const cv=document.getElementById("cv"),ctx=cv.getContext("2d");
+const stage=document.getElementById("stage");
+const overlay=document.getElementById("overlay"),page=document.getElementById("page");
+const toastEl=document.getElementById("toast"),chip=document.getElementById("chip");
+let scale=1,dpr=1;
+
+function resize(){
+  const w=stage.clientWidth-12,h=stage.clientHeight-12;scale=Math.max(.3,Math.min(w/RW,h/RH));dpr=Math.min(2,window.devicePixelRatio||1);
+  cv.style.width=Math.floor(RW*scale)+"px";cv.style.height=Math.floor(RH*scale)+"px";
+  cv.width=Math.floor(RW*scale*dpr);cv.height=Math.floor(RH*scale*dpr);
+}
+window.addEventListener("resize",resize);
+function toast(msg,ms){toastEl.textContent=msg;toastEl.hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>toastEl.hidden=true,ms||3000);}
+function renderCards(){
+  const box=document.getElementById("pcs");box.innerHTML="";
+  for(let i=0;i<7;i++){const id=state.order[i];const d=document.createElement("div");
+    if(id){d.className="pc full";d.style.background=BRO[id-1].band;d.textContent=BRO[id-1].letter;}else d.className="pc";box.appendChild(d);}
+  document.getElementById("count").textContent=state.order.length+" / 7";
+  document.getElementById("level").innerHTML='Stufe <b>'+(state.level===2?"▲":state.level===3?"●":"–")+'</b>';
+  const n=state.order.length;
+  chip.textContent=state.done?"Alle Kunden glücklich!":n<7?("Lies die Prospekte: "+n+" von 7"):"Kunden warten an der Theke!";
+}
+
+/* =========================================================
+   4) ZEICHNEN
+   ========================================================= */
+function rr(g,x,y,w,h,r){g.beginPath();g.moveTo(x+r,y);g.arcTo(x+w,y,x+w,y+h,r);g.arcTo(x+w,y+h,x,y+h,r);g.arcTo(x,y+h,x,y,r);g.arcTo(x,y,x+w,y,r);g.closePath();}
+const bg=document.createElement("canvas");bg.width=RW*2;bg.height=RH*2;
+function buildRoom(){
+  const g=bg.getContext("2d");g.setTransform(2,0,0,2,0,0);
+  /* Boden: Holzdielen */
+  g.fillStyle="#e9cf9f";g.fillRect(0,0,RW,RH);
+  for(let y=0;y<RH;y+=32){g.fillStyle=(y/32)%2?"#e3c792":"#ecd5a8";g.fillRect(0,y,RW,32);g.strokeStyle="rgba(120,80,30,.18)";g.lineWidth=1;g.beginPath();g.moveTo(0,y);g.lineTo(RW,y);g.stroke();
+    for(let x=((y/32)%2)*90;x<RW;x+=180){g.beginPath();g.moveTo(x,y);g.lineTo(x,y+32);g.stroke();}}
+  /* Teppich */
+  g.fillStyle="#2c5282";rr(g,300,250,360,170,26);g.fill();
+  g.strokeStyle="#f6b82e";g.lineWidth=5;rr(g,314,264,332,142,18);g.stroke();
+  g.strokeStyle="rgba(255,250,240,.35)";g.lineWidth=2;for(let i=0;i<5;i++){g.beginPath();g.arc(480,335,20+i*14,0,Math.PI*2);g.stroke();}
+  /* Wände */
+  g.fillStyle="#1f3a5f";g.fillRect(0,0,RW,WALL);g.fillRect(0,0,WALL,RH);g.fillRect(RW-WALL,0,WALL,RH);g.fillRect(0,RH-WALL,RW,WALL);
+  /* Schaufenster unten */
+  g.fillStyle="#bfe3f2";[[90,240],[630,240]].forEach(([x,w])=>{g.fillRect(x,RH-WALL+6,w,WALL-12);});
+  g.fillStyle="rgba(255,255,255,.6)";[[110],[150],[650],[690]].forEach(([x])=>{g.fillRect(x,RH-WALL+8,16,4);});
+  /* Tür + Matte */
+  g.fillStyle="#e9cf9f";g.fillRect(DOOR.x,RH-WALL,DOOR.w,WALL);
+  g.fillStyle="#b5652f";rr(g,DOOR.x+10,RH-WALL-40,DOOR.w-20,34,6);g.fill();
+  g.fillStyle="#fffaf0";g.font="700 13px 'Baloo 2', sans-serif";g.textAlign="center";g.fillText("WILLKOMMEN",RW/2,RH-WALL-18);
+  /* Poster an der Rückwand */
+  [[300,"#f6c75a"],[620,"#8fd1a8"]].forEach(([x,c],i)=>{g.fillStyle="#fffaf0";g.fillRect(x,4,60,20);g.fillStyle=c;g.fillRect(x+3,7,54,14);
+    g.fillStyle="#22252b";if(i===0){g.beginPath();g.arc(x+44,14,4,0,Math.PI*2);g.fill();}else{g.beginPath();g.moveTo(x+12,21);g.lineTo(x+24,9);g.lineTo(x+36,21);g.fill();}});
+  /* Theke */
+  g.fillStyle="rgba(0,0,0,.18)";rr(g,counter.x+4,counter.y+8,counter.w,counter.h,10);g.fill();
+  g.fillStyle="#ef6f5e";rr(g,counter.x,counter.y,counter.w,counter.h,10);g.fill();
+  g.fillStyle="#fffaf0";rr(g,counter.x+8,counter.y+6,counter.w-16,26,6);g.fill();
+  g.fillStyle="#22252b";rr(g,counter.x+24,counter.y+8,46,22,3);g.fill();g.fillStyle="#8fc9e6";g.fillRect(counter.x+27,counter.y+11,40,16);
+  g.fillStyle="#f6b82e";g.beginPath();g.arc(counter.x+170,counter.y+19,9,0,Math.PI*2);g.fill();
+  g.fillStyle="#fffaf0";g.font="800 16px 'Baloo 2', sans-serif";g.textAlign="center";g.fillText("REISEBÜRO FERNWEH",counter.x+counter.w/2,counter.y+51);
+  /* Bürostuhl */
+  g.fillStyle="#22252b";g.beginPath();g.arc(490,WALL+14,13,0,Math.PI*2);g.fill();
+  /* Sitzecke */
+  g.fillStyle="rgba(0,0,0,.15)";rr(g,442,324,84,52,10);g.fill();
+  g.fillStyle="#b5652f";rr(g,438,318,84,52,10);g.fill();
+  g.fillStyle="#fffaf0";g.save();g.translate(462,332);g.rotate(-.2);g.fillRect(0,0,22,16);g.restore();g.fillStyle="#f6c75a";g.save();g.translate(486,338);g.rotate(.25);g.fillRect(0,0,22,16);g.restore();
+  [[345,300],[553,300]].forEach(([x,y])=>{g.fillStyle="#6cbfa6";rr(g,x,y,62,62,16);g.fill();g.fillStyle="#57a58d";rr(g,x+10,y+10,42,42,10);g.fill();});
+  /* Sofa-Bank */
+  g.fillStyle="#f6b82e";rr(g,690,WALL,120,40,10);g.fill();g.fillStyle="#e3a51e";rr(g,698,WALL+4,50,30,8);g.fill();rr(g,752,WALL+4,50,30,8);g.fill();
+  /* Pflanzen */
+  [[WALL+31,WALL+31],[RW-WALL-74+36,WALL+36]].forEach(([x,y])=>{g.fillStyle="#b5652f";g.beginPath();g.arc(x,y,22,0,Math.PI*2);g.fill();
+    g.fillStyle="#3c9a5a";for(let i=0;i<7;i++){const a=i/7*Math.PI*2;g.beginPath();g.ellipse(x+Math.cos(a)*14,y+Math.sin(a)*14,14,7,a,0,Math.PI*2);g.fill();}
+    g.fillStyle="#56b874";g.beginPath();g.arc(x,y,10,0,Math.PI*2);g.fill();});
+}
+function drawRack(g,r,t){
+  const done=state.solved[r.id];
+  g.fillStyle="rgba(0,0,0,.18)";rr(g,r.x+4,r.y+6,r.w,r.h,6);g.fill();
+  g.fillStyle="#8a5a34";rr(g,r.x,r.y,r.w,r.h,6);g.fill();
+  /* Prospekte im Ständer */
+  const vert=r.face!=="down";const n=3;
+  for(let i=0;i<n;i++){
+    let bx,by,bw,bh;
+    if(vert){bw=r.w-14;bh=(r.h-16)/n-4;bx=r.x+7;by=r.y+8+i*((r.h-16)/n);}
+    else{bw=(r.w-16)/n-4;bh=r.h-14;bx=r.x+8+i*((r.w-16)/n);by=r.y+7;}
+    g.fillStyle=r.b.band;rr(g,bx,by,bw,bh,3);g.fill();g.fillStyle="rgba(255,250,240,.75)";g.fillRect(bx+3,by+bh-7,bw-6,3);
+  }
+  /* Schild */
+  const sx=r.tx,sy=r.face==="down"?r.y+r.h+2:r.y-14;
+  const label=r.id+" · "+r.b.short;g.font="800 14px 'Baloo 2', sans-serif";const tw=g.measureText(label).width+18;
+  let lx=r.face==="right"?r.x+2:r.face==="left"?r.x+r.w-tw-2:sx-tw/2;let ly=r.face==="down"?r.y+r.h+4:r.y-24;
+  g.fillStyle=done?"#2f7d4a":"#22252b";rr(g,lx,ly,tw,20,10);g.fill();
+  g.fillStyle="#fffaf0";g.textAlign="left";g.textBaseline="middle";g.fillText(label,lx+9,ly+11);
+  if(done){g.fillStyle="#2f7d4a";g.beginPath();g.arc(lx+tw,ly+2,9,0,Math.PI*2);g.fill();g.strokeStyle="#fff";g.lineWidth=2.5;g.beginPath();g.moveTo(lx+tw-4,ly+2);g.lineTo(lx+tw-1,ly+5);g.lineTo(lx+tw+4,ly-2);g.stroke();}
+  else if(state.level){const p=(Math.sin(t*4+r.id)+1)/2;g.fillStyle="rgba(246,184,46,"+(0.25+p*.35)+")";g.beginPath();g.arc(r.tx,r.ty,12+p*4,0,Math.PI*2);g.fill();
+    g.fillStyle="#22252b";g.font="800 16px 'Baloo 2', sans-serif";g.textAlign="center";g.fillText("!",r.tx,r.ty+1);}
+}
+function drawPerson(g,x,y,ang,col,hair,step,label){
+  g.save();g.translate(x,y);
+  g.fillStyle="rgba(0,0,0,.18)";g.beginPath();g.ellipse(2,4,15,12,0,0,Math.PI*2);g.fill();
+  g.rotate(ang+Math.PI/2);
+  const s=Math.sin(step)*5;
+  g.fillStyle="#22252b";g.beginPath();g.ellipse(-6,-s,4,6,0,0,Math.PI*2);g.fill();g.beginPath();g.ellipse(6,s,4,6,0,0,Math.PI*2);g.fill();
+  g.fillStyle=col;g.beginPath();g.ellipse(0,0,14,9,0,0,Math.PI*2);g.fill();
+  g.fillStyle="#e8b08a";g.beginPath();g.arc(-13,s*.6,3.5,0,Math.PI*2);g.fill();g.beginPath();g.arc(13,-s*.6,3.5,0,Math.PI*2);g.fill();
+  g.fillStyle="#e8b08a";g.beginPath();g.arc(0,-1,7.5,0,Math.PI*2);g.fill();
+  g.fillStyle=hair;g.beginPath();g.arc(0,1,7.8,0,Math.PI);g.fill();g.beginPath();g.arc(0,-1,7.8,Math.PI*1.05,Math.PI*1.95,true);g.fill();
+  g.restore();
+  if(label){g.font="700 12px 'Atkinson Hyperlegible', sans-serif";g.textAlign="center";g.textBaseline="middle";const w=g.measureText(label).width+12;
+    g.fillStyle="rgba(255,250,240,.95)";rr(g,x-w/2,y-34,w,18,9);g.fill();g.fillStyle="#22252b";g.fillText(label,x,y-25);}
+}
+function drawKid(g,t){
+  drawPerson(g,kid.x,kid.y,kid.ang,"#ef6f5e","#4a2e1c",kid.step,null);
+  /* Halstuch des Reisebüros */
+  g.save();g.translate(kid.x,kid.y);g.rotate(kid.ang+Math.PI/2);g.fillStyle="#f6b82e";g.beginPath();g.moveTo(-6,-7);g.lineTo(6,-7);g.lineTo(0,-12);g.closePath();g.fill();g.restore();
+}
+function draw(t){
+  ctx.setTransform(scale*dpr,0,0,scale*dpr,0,0);
+  ctx.drawImage(bg,0,0,RW,RH);
+  racks.forEach(r=>drawRack(ctx,r,t));
+  /* Kunden */
+  if(state.order.length===7&&!state.done){
+    const list=state.level===3?[...CUSTOMERS,CUST_EXTRA]:CUSTOMERS;
+    list.forEach((c,i)=>{const x=410+i*58-(list.length-3)*29,y=counterSpot.y+80+Math.sin(t*2+i)*1.5;drawPerson(ctx,x,y,-Math.PI/2,c.col,"#2d2a22",0,i===0?"Kunden":null);});
+    const p=(Math.sin(t*4)+1)/2;ctx.fillStyle="rgba(246,184,46,"+(0.3+p*.35)+")";ctx.beginPath();ctx.arc(counterSpot.x,counterSpot.y,14+p*4,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle="#22252b";ctx.font="800 16px 'Baloo 2', sans-serif";ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText("!",counterSpot.x,counterSpot.y+1);
+  }
+  drawKid(ctx,t);
+}
+
+/* =========================================================
+   5) BEWEGUNG
+   ========================================================= */
+const DIRV={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]};
+const R=14;
+function hits(x,y){
+  if(x<WALL+R||x>RW-WALL-R||y<WALL+R)return true;
+  if(y>RH-WALL-R)return true;
+  for(const o of obstacles){const cx=Math.max(o.x,Math.min(x,o.x+o.w)),cy=Math.max(o.y,Math.min(y,o.y+o.h));if((x-cx)**2+(y-cy)**2<R*R)return true;}
+  return false;
+}
+function update(dt,t){
+  let vx=0,vy=0;pressed.forEach(d=>{vx+=DIRV[d][0];vy+=DIRV[d][1];});
+  if(!overlayOpen&&(vx||vy)){
+    const l=Math.hypot(vx,vy);vx/=l;vy/=l;const sp=170*dt;
+    const nx=kid.x+vx*sp,ny=kid.y+vy*sp;
+    if(!hits(nx,kid.y))kid.x=nx;if(!hits(kid.x,ny))kid.y=ny;
+    const ta=Math.atan2(vy,vx);let da=ta-kid.ang;while(da>Math.PI)da-=2*Math.PI;while(da<-Math.PI)da+=2*Math.PI;kid.ang+=da*Math.min(1,dt*14);
+    kid.step+=dt*14;
+  }
+  if(overlayOpen||!state.level)return;
+  racks.forEach(r=>{const d=Math.hypot(r.tx-kid.x,r.ty-kid.y);
+    if(d>52)r.armed=true;
+    if(d<26&&r.armed){r.armed=false;
+      if(state.solved[r.id])toast("Diesen Prospekt hast du schon gelesen.");
+      else{pressed.clear();releaseAll();openBrochure(r.b);}}});
+  const dc=Math.hypot(counterSpot.x-kid.x,counterSpot.y-kid.y);
+  if(dc>56)counterArmed=true;
+  if(dc<28&&counterArmed){counterArmed=false;
+    if(state.order.length<7)toast("Lies zuerst alle Prospekte. Dann kommen die Kunden.");
+    else if(!state.done){pressed.clear();releaseAll();openCustomers(0);}}
+}
+function loop(now){const t=now/1000;const dt=lastT?Math.min(.05,t-lastT):.016;lastT=t;update(dt,t);draw(t);requestAnimationFrame(loop);}
+
+/* Steuerkreuz */
+const dpad=document.getElementById("dpad");const ptrDir=new Map();
+function releaseAll(){ptrDir.clear();dpad.querySelectorAll("button").forEach(b=>b.classList.remove("on"));}
+dpad.querySelectorAll("button").forEach(b=>{const d=b.dataset.d;
+  b.addEventListener("pointerdown",e=>{e.preventDefault();try{b.setPointerCapture(e.pointerId);}catch(_){}ptrDir.set(e.pointerId,d);pressed.add(d);b.classList.add("on");});
+  const up=e=>{ptrDir.delete(e.pointerId);if(![...ptrDir.values()].includes(d)){pressed.delete(d);b.classList.remove("on");}};
+  b.addEventListener("pointerup",up);b.addEventListener("pointercancel",up);b.addEventListener("lostpointercapture",up);b.addEventListener("contextmenu",e=>e.preventDefault());});
+dpad.addEventListener("touchstart",e=>e.preventDefault(),{passive:false});
+const KEYS={ArrowUp:"up",ArrowDown:"down",ArrowLeft:"left",ArrowRight:"right"};
+window.addEventListener("keydown",e=>{const d=KEYS[e.key];if(d&&!overlayOpen){e.preventDefault();pressed.add(d);}});
+window.addEventListener("keyup",e=>{const d=KEYS[e.key];if(d)pressed.delete(d);});
+window.addEventListener("blur",()=>{pressed.clear();releaseAll();});
+
+/* =========================================================
+   6) SEITEN
+   ========================================================= */
+function el(tag,cls,html){const e=document.createElement(tag);if(cls)e.className=cls;if(html!=null)e.innerHTML=html;return e;}
+function btn(cls,html,fn){const b=el("button",cls,html);b.type="button";if(fn)b.addEventListener("click",fn);return b;}
+function show(){overlayOpen=true;overlay.hidden=false;page.scrollTop=0;}
+function hide(){overlayOpen=false;overlay.hidden=true;pressed.clear();releaseAll();}
+function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+function shakePage(){page.classList.remove("shake");void page.offsetWidth;page.classList.add("shake");}
+function plainPage(){page.innerHTML="";const b=el("div","body");page.appendChild(b);return b;}
+
+function openStart(){
+  const b=plainPage();
+  b.appendChild(el("p","eyebrow","Lesespur · Tourismus in Europa"));
+  b.appendChild(el("h1",null,"Reisebüro Fernweh"));
+  b.appendChild(el("p","lead","Heute ist dein erster Arbeitstag im Reisebüro! Bevor die Kunden kommen, musst du dich gut auskennen."));
+  b.appendChild(el("p","lead","An den Wänden stehen <b>sieben Prospektständer</b>. Geh zu jedem Ständer, lies den Prospekt genau und beantworte zwei Fragen. Für jeden Prospekt bekommst du eine <b>Postkarte</b> mit einem Buchstaben."));
+  b.appendChild(el("p","lead","Danach warten an der Theke deine ersten <b>Kunden</b>. Berate sie gut!"));
+  b.appendChild(el("p","q","Wähle deine Stufe:"));
+  const lv=el("div","levels");
+  [[2,"▲","Dreieck"],[3,"●","Kreis"]].forEach(([n,s,name])=>{lv.appendChild(btn("btn",'<span class="shape">'+s+'</span>'+name,()=>{state.level=n;state.start=Date.now();renderCards();openHowto();}));});
+  b.appendChild(lv);show();
+}
+function openHowto(){
+  const b=plainPage();
+  b.appendChild(el("p","eyebrow","So geht’s"));
+  b.appendChild(el("h2","plain","Ab an die Arbeit!"));
+  b.appendChild(el("p","lead","Halte einen Pfeil auf dem Steuerkreuz gedrückt, dann läufst du durch das Reisebüro."));
+  b.appendChild(el("p","lead","Vor jedem Prospektständer, den du noch lesen musst, blinkt ein gelbes <b>!</b>. Stell dich darauf, dann öffnet sich der Prospekt."));
+  b.appendChild(el("p","lead","Die Reihenfolge darfst du selbst wählen. Tipp: Die Nummern helfen dir."));
+  b.appendChild(btn("btn primary","Los geht’s",hide));show();
+}
+function openBrochure(B){
+  const lvl=state.level,text=lvl===2?B.t2:B.t3,qs=lvl===2?B.q2:B.q3;
+  page.innerHTML="";
+  const hero=el("div","hero");hero.style.setProperty("--band",B.band);
+  hero.innerHTML=ART[B.art]+'<div><p class="kicker">Prospekt '+B.id+' · '+B.kicker+'</p><h2>'+B.title+'</h2></div>';
+  page.appendChild(hero);
+  const body=el("div","body");page.appendChild(body);
+  const tx=el("div","text");text.forEach(p=>tx.appendChild(el("p",null,p)));body.appendChild(tx);
+  const area=el("div");area.style.display="flex";area.style.flexDirection="column";area.style.gap="16px";body.appendChild(area);
+  const close=btn("btn","Prospekt zurückstellen und später lesen",hide);close.style.textAlign="center";
+  function ask(i){
+    const q=qs[i];const box=el("div","qbox");
+    box.appendChild(el("p","qnum","Frage "+(i+1)+" von 2"));box.appendChild(el("p","q",q.q));
+    const list=el("div","answers"),fb=el("p","feedback"),hn=el("p","hint");fb.hidden=true;hn.hidden=true;
+    shuffle(q.a.map((a,k)=>({a,ok:k===0}))).forEach(o=>{const b=btn("btn",o.a,()=>{
+      if(o.ok){list.querySelectorAll("button").forEach(x=>x.disabled=true);b.classList.add("right");
+        fb.className="feedback good";fb.textContent=i===0?"Richtig! Weiter zur zweiten Frage.":"Richtig! Prospekt geschafft.";fb.hidden=false;hn.hidden=true;
+        if(i===0)setTimeout(()=>ask(1),350);else setTimeout(()=>finishBrochure(B),500);}
+      else{state.wrong++;b.classList.add("wrong");b.disabled=true;fb.className="feedback bad";fb.textContent="Das stimmt noch nicht. Lies im Prospekt nach.";fb.hidden=false;
+        hn.innerHTML="<b>Tipp:</b> "+q.h;hn.hidden=false;shakePage();}
+    });list.appendChild(b);});
+    box.appendChild(list);box.appendChild(fb);box.appendChild(hn);area.appendChild(box);
+    if(i>0)setTimeout(()=>box.scrollIntoView({behavior:"smooth",block:"start"}),60);
+  }
+  ask(0);body.appendChild(close);show();
+}
+function finishBrochure(B){
+  state.solved[B.id]=true;state.order.push(B.id);renderCards();
+  const b=plainPage();
+  b.appendChild(el("p","eyebrow","Prospekt "+B.id+" geschafft"));
+  b.appendChild(el("h2","plain",B.title));
+  const pc=el("div","postcard");pc.style.setProperty("--band",B.band);pc.innerHTML=ART[B.art]+'<span class="gruss">Viele Grüße!</span><span class="marke">'+B.letter+'</span>';
+  b.appendChild(pc);
+  b.appendChild(el("p","lead","Du bekommst eine Postkarte mit dem Buchstaben <b>"+B.letter+"</b>."));
+  const left=7-state.order.length;
+  b.appendChild(btn("btn primary",left?("Weiter (noch "+left+" Prospekt"+(left>1?"e":"")+")"):"Zu den Kunden an der Theke",()=>{hide();if(!left)toast("Die ersten Kunden sind da! Geh zur Theke.",4500);}));
+  show();
+}
+function openCustomers(idx){
+  const list=state.level===3?[...CUSTOMERS,CUST_EXTRA]:CUSTOMERS;
+  if(idx>=list.length){openFinal();return;}
+  const c=list[idx];
+  const b=plainPage();
+  b.appendChild(el("p","eyebrow","Kundenberatung · "+(idx+1)+" von "+list.length));
+  b.appendChild(el("p","who",c.name+" sagt:"));
+  b.appendChild(el("p","speech","„"+c.say+"“"));
+  b.appendChild(el("p","q","Welche Reise empfiehlst du?"));
+  const ans=el("div","answers"),fb=el("p","feedback"),hn=el("p","hint");fb.hidden=true;hn.hidden=true;
+  shuffle(c.a.map((a,k)=>({a,ok:k===0}))).forEach(o=>{const bt=btn("btn",o.a,()=>{
+    if(o.ok){ans.querySelectorAll("button").forEach(x=>x.disabled=true);bt.classList.add("right");fb.className="feedback good";fb.textContent="Super beraten! "+c.name+" bucht die Reise.";fb.hidden=false;hn.hidden=true;
+      const nx=btn("btn primary",idx+1<list.length?"Nächster Kunde":"Feierabend!",()=>openCustomers(idx+1));b.appendChild(nx);setTimeout(()=>nx.scrollIntoView({behavior:"smooth",block:"end"}),60);}
+    else{state.wrong++;bt.classList.add("wrong");bt.disabled=true;fb.className="feedback bad";fb.textContent="Hm, das passt nicht ganz zu dem, was "+c.name+" möchte.";fb.hidden=false;hn.innerHTML="<b>Tipp:</b> "+c.h;hn.hidden=false;shakePage();}
+  });ans.appendChild(bt);});
+  b.appendChild(ans);b.appendChild(fb);b.appendChild(hn);show();
+}
+function openFinal(){
+  state.custDone=true;let picked=[];
+  const b=plainPage();
+  b.appendChild(el("p","eyebrow","Feierabend"));
+  b.appendChild(el("h2","plain","Das Lösungswort"));
+  b.appendChild(el("p","lead","Lege deine sieben Postkarten in die richtige Reihenfolge. Das Wort steht auch auf dem Schild des Reisebüros."));
+  const word=el("div","word"),letters=el("div","letters"),fb=el("p","feedback");fb.hidden=true;
+  function paint(){word.innerHTML="";for(let i=0;i<WORD.length;i++){const d=el("div","pc"+(picked[i]?" full":""),picked[i]?picked[i].ch:"");if(picked[i])d.style.background=BRO[picked[i].id-1].band;word.appendChild(d);}}
+  let pool=shuffle(BRO.map(B=>({ch:B.letter,id:B.id})));if(pool.map(p=>p.ch).join("")===WORD)pool.reverse();
+  pool.forEach(p=>{const bt=btn("btn",p.ch,()=>{if(picked.length>=WORD.length)return;picked.push(p);bt.disabled=true;paint();
+    if(picked.length===WORD.length){if(picked.map(x=>x.ch).join("")===WORD)setTimeout(openEnd,500);
+      else{state.wrong++;fb.className="feedback bad";fb.textContent="Das ergibt noch kein Wort. Versuch es noch einmal!";fb.hidden=false;shakePage();setTimeout(()=>{picked.forEach(x=>x.btn.disabled=false);picked=[];paint();},900);}}});
+    p.btn=bt;letters.appendChild(bt);});
+  paint();b.appendChild(word);b.appendChild(letters);b.appendChild(fb);
+  b.appendChild(btn("btn","Letzte Postkarte zurücklegen",()=>{const p=picked.pop();if(p)p.btn.disabled=false;paint();fb.hidden=true;}));
+  show();
+}
+function openEnd(){
+  state.done=true;renderCards();
+  const min=Math.max(1,Math.round((Date.now()-state.start)/60000));
+  const b=plainPage();
+  b.appendChild(el("p","eyebrow","Erster Arbeitstag geschafft"));
+  b.appendChild(el("h1",null,"FERNWEH!"));
+  b.appendChild(el("p","lead","„Fernweh“ ist die Sehnsucht nach fernen Orten. Du hast alle Prospekte gelesen und deine Kunden gut beraten. Zeige diesen Bildschirm deiner Lehrkraft."));
+  const st=el("div","stats");
+  st.innerHTML="<span>Stufe</span><span>"+(state.level===2?"▲ Dreieck":"● Kreis")+"</span><span>Lösungswort</span><span>FERNWEH</span><span>Kunden beraten</span><span>"+(state.level===3?4:3)+"</span><span>Fehlversuche</span><span>"+state.wrong+"</span><span>Zeit</span><span>ca. "+min+" Min.</span>";
+  b.appendChild(st);
+  b.appendChild(btn("btn primary","Noch einmal spielen",()=>{state.level=null;state.solved={};state.order=[];state.wrong=0;state.done=false;state.custDone=false;kid.x=490;kid.y=470;racks.forEach(r=>r.armed=true);counterArmed=true;renderCards();openStart();}));
+  show();
+}
+
+/* =========================================================
+   7) START
+   ========================================================= */
+const hot=window.claude&&window.claude.hot;
+if(hot&&hot.snapshot){try{hot.snapshot(()=>({state:JSON.parse(JSON.stringify(state)),kid:{x:kid.x,y:kid.y}}));}catch(_){}}
+function boot(data){
+  resize();
+  const go=()=>{buildRoom();};
+  if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>{buildRoom();});
+  go();
+  if(data&&data.state&&data.state.level){Object.assign(state,data.state);kid.x=data.kid.x;kid.y=data.kid.y;renderCards();if(state.done)openEnd();else hide();}
+  else{renderCards();openStart();}
+  requestAnimationFrame(loop);
+}
+if(hot&&hot.ready)hot.ready(boot);else boot(hot&&hot.data?hot.data:{});
+})();
+</script>
+
+</body>
+</html>

@@ -9,6 +9,26 @@
 
 const LESESPUREN = [
   {
+    titel: "Expedition Europa",
+    datei: "lesespuren/expedition-europa.html",
+    thema: "Europa – Länder, Gebirge, Flüsse",
+    fach: "Deutsch · GPG",
+    text: "Mit Forschungsboot und Expeditions-Jeep quer durch Europa: Acht Stationen von Gibraltar bis Moskau.",
+    bild: "🧭",
+    stufen: ["▲", "●"],
+    neu: true,
+  },
+  {
+    titel: "Reisebüro Fernweh",
+    datei: "lesespuren/reisebuero-fernweh.html",
+    thema: "Tourismus in Europa",
+    fach: "Deutsch · GPG",
+    text: "Dein erster Arbeitstag im Reisebüro: Lies die Prospekte zu Mallorca, Alpen und Venedig und berate deine Kunden.",
+    bild: "🧳",
+    stufen: ["▲", "●"],
+    neu: true,
+  },
+  {
     titel: "Der Fortnite-Fußball-Cup",
     datei: "lesespuren/der-fortnite-fussball-cup.html",
     thema: "Fußball und Fortnite",

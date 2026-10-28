@@ -1,0 +1,829 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Expedition Europa</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zilla+Slab:ital,wght@0,500;0,700;1,500;1,600&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+<style>
+/* Layout: Kartenfenster (Kamera folgt Fahrzeug) + Seitenleiste mit Expeditionsbuch und Steuerkreuz; Lesetexte als Feldbuch-Seiten im Overlay */
+:root{
+  --sea:#2c6e7f;
+  --shallow:#5fa3ad;
+  --land:#e4dcb8;
+  --ink:#2d2a22;
+  --paper:#f7f0dc;
+  --paper-edge:#d9cba3;
+  --signal:#e2662a;      /* Expeditions-Orange */
+  --khaki:#8f8550;
+  --ok:#3f8a4a;
+  --bad:#c0452f;
+  --panel:#24363b;
+  --panel-hi:#35505a;
+  --display:"Zilla Slab", Rockwell, "Roboto Slab", Georgia, serif;
+  --body:"Atkinson Hyperlegible", "Helvetica Neue", Arial, sans-serif;
+  color-scheme:light;
+}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{
+  background:var(--panel);color:var(--paper);font-family:var(--body);margin:0;
+  overflow:hidden;touch-action:manipulation;
+  -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;
+  padding-left:max(12px, env(safe-area-inset-left, 0px));
+  padding-right:max(12px, env(safe-area-inset-right, 0px));
+}
+.app{height:100%;display:grid;grid-template-columns:minmax(0,1fr) 250px;gap:14px;padding-block:10px;box-sizing:border-box}
+@media (orientation:portrait){.app{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr) auto}}
+.stage{position:relative;min-width:0;min-height:0;border-radius:14px;overflow:hidden;background:var(--sea);box-shadow:0 0 0 3px var(--panel-hi)}
+#cv{position:absolute;inset:0;width:100%;height:100%;display:block}
+.chip{position:absolute;left:10px;top:10px;background:var(--paper);color:var(--ink);border-radius:999px;padding:8px 14px 8px 10px;font-family:var(--display);font-weight:700;font-size:17px;display:flex;gap:8px;align-items:center;box-shadow:0 3px 0 rgba(0,0,0,.25);max-width:calc(100% - 200px)}
+.chip .dot{width:14px;height:14px;border-radius:50%;background:var(--signal);flex:none}
+#mini{position:absolute;right:10px;top:10px;width:170px;height:120px;border-radius:8px;border:3px solid var(--paper);box-shadow:0 3px 0 rgba(0,0,0,.25);background:var(--sea)}
+.toast{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);background:var(--paper);color:var(--ink);font-size:18px;font-weight:700;padding:10px 18px;border-radius:12px;max-width:86%;text-align:center;pointer-events:none;box-shadow:0 4px 0 rgba(0,0,0,.25)}
+.side{display:flex;flex-direction:column;gap:14px;align-items:stretch;justify-content:center;min-width:0}
+@media (orientation:portrait){.side{flex-direction:row;flex-wrap:wrap;justify-content:center;align-items:center;padding-bottom:6px}}
+.brand{font-family:var(--display);font-weight:700;font-size:24px;line-height:1.05;color:var(--paper);margin:0}
+.brand small{display:block;font-family:var(--body);font-weight:400;font-size:14px;color:#a9c3c6;margin-top:4px}
+@media (orientation:portrait){.brand{display:none}}
+.book{background:var(--paper);color:var(--ink);border-radius:10px;padding:10px 12px 12px;box-shadow:0 4px 0 rgba(0,0,0,.3)}
+.book h3{font-family:var(--display);margin:0 0 8px;font-size:16px;display:flex;justify-content:space-between;align-items:baseline}
+.book h3 span{font-family:var(--body);font-size:14px;font-variant-numeric:tabular-nums}
+.stamps{display:grid;grid-template-columns:repeat(4,44px);gap:8px}
+.stamp{width:44px;height:44px;border-radius:50%;border:2px dashed #b4a57a;display:grid;place-items:center;font-family:var(--display);font-weight:700;font-size:22px;color:transparent;box-sizing:border-box}
+.stamp.full{border:3px solid var(--signal);color:var(--signal);transform:rotate(-8deg);background:rgba(226,102,42,.08)}
+.dpad{display:grid;grid-template-columns:repeat(3,72px);grid-template-rows:repeat(3,72px);gap:6px;touch-action:none;align-self:center}
+.dpad button{
+  font:inherit;border:0;border-radius:14px;background:var(--paper);color:var(--ink);font-size:30px;
+  box-shadow:0 5px 0 #a69769;touch-action:none;cursor:pointer;display:grid;place-items:center;
+}
+.dpad button.on{transform:translateY(4px);box-shadow:0 1px 0 #a69769;background:#efe3c2}
+.dpad button:focus-visible{outline:3px solid var(--signal);outline-offset:2px}
+.dpad .hub{border-radius:50%;background:var(--panel-hi);margin:14px}
+.level{font-family:var(--display);font-size:16px;color:#cfe0e2;text-align:center}
+.level b{color:var(--paper);font-size:22px}
+
+/* Overlay: Feldbuch */
+.overlay{position:fixed;inset:0;background:rgba(18,30,34,.7);display:flex;align-items:center;justify-content:center;z-index:20;
+  padding-left:max(14px, env(safe-area-inset-left, 0px));padding-right:max(14px, env(safe-area-inset-right, 0px));
+  padding-block:max(14px, env(safe-area-inset-top, 0px)) max(14px, env(safe-area-inset-bottom, 0px));box-sizing:border-box}
+.page{
+  width:min(720px,100%);max-height:100%;overflow-y:auto;-webkit-overflow-scrolling:touch;box-sizing:border-box;
+  background:var(--paper);color:var(--ink);border-radius:6px 16px 16px 6px;
+  box-shadow:inset 14px 0 0 var(--paper-edge),0 10px 30px rgba(0,0,0,.4);
+  padding:26px 26px 26px 40px;display:flex;flex-direction:column;gap:16px;user-select:text;-webkit-user-select:text;
+  background-image:repeating-linear-gradient(180deg,transparent 0 33px,rgba(44,110,127,.13) 33px 34px);
+}
+.page h1,.page h2{font-family:var(--display);margin:0;text-wrap:balance;line-height:1.1}
+.page h1{font-size:clamp(30px,5vw,44px)}
+.page h2{font-size:clamp(24px,3.8vw,32px)}
+.eyebrow{font-family:var(--display);font-weight:700;font-size:15px;letter-spacing:.08em;text-transform:uppercase;color:var(--signal);margin:0}
+.place{font-size:16px;color:#5f5a48;margin:-8px 0 0}
+.text{font-size:20px;line-height:1.65;max-width:62ch}
+.text p{margin:0 0 .7em}.text p:last-child{margin:0}
+.lead{font-size:20px;line-height:1.55;margin:0;max-width:62ch}
+.qbox{border-top:3px solid var(--ink);padding-top:14px;display:flex;flex-direction:column;gap:10px}
+.qnum{font-family:var(--display);font-weight:700;font-size:15px;color:#5f5a48;margin:0;letter-spacing:.05em;text-transform:uppercase}
+.q{font-weight:700;font-size:21px;line-height:1.4;margin:0}
+.btn{
+  font-family:var(--body);font-size:19px;line-height:1.35;text-align:left;cursor:pointer;color:var(--ink);
+  background:#fffaf0;border:2px solid var(--ink);border-radius:12px;padding:14px 16px;min-height:56px;
+  box-shadow:0 4px 0 var(--ink);
+}
+.btn:active{transform:translateY(3px);box-shadow:0 1px 0 var(--ink)}
+.btn:focus-visible{outline:3px solid var(--signal);outline-offset:2px}
+.btn:disabled{cursor:default}
+.btn.wrong{background:#f3cfc4;text-decoration:line-through;box-shadow:none;transform:translateY(3px)}
+.btn.right{background:#cfe8c7;box-shadow:none;transform:translateY(3px)}
+.btn.primary{background:var(--signal);color:#fff;border-color:#9b3f14;box-shadow:0 4px 0 #9b3f14;font-family:var(--display);font-weight:700;font-size:22px;text-align:center}
+.answers{display:flex;flex-direction:column;gap:10px}
+.feedback{font-size:19px;font-weight:700;margin:0;padding:10px 14px;border-radius:10px}
+.feedback.bad{background:#f6dbd2;color:#7a2512}
+.feedback.good{background:#d8eed1;color:#1e5226}
+.hint{font-size:18px;background:#fff1b8;border:2px dashed var(--ink);border-radius:10px;padding:10px 14px;margin:0}
+.levels{display:flex;gap:16px;flex-wrap:wrap}
+.levels .btn{flex:1 1 200px;text-align:center;font-family:var(--display);font-weight:700;font-size:22px;padding:20px}
+.levels .shape{display:block;font-size:54px;line-height:1;margin-bottom:6px;font-family:var(--body)}
+.vehicles{display:flex;gap:18px;flex-wrap:wrap;align-items:center}
+.vehicles figure{margin:0;display:flex;gap:10px;align-items:center;font-size:18px}
+.vehicles canvas{width:64px;height:64px;background:var(--shallow);border-radius:12px}
+.stampbig{align-self:center;width:120px;height:120px;border-radius:50%;border:5px solid var(--signal);color:var(--signal);display:grid;place-items:center;font-family:var(--display);font-weight:700;font-size:64px;transform:rotate(-10deg);animation:stamp .45s ease-out}
+@keyframes stamp{0%{transform:scale(2.2) rotate(-25deg);opacity:0}70%{transform:scale(.92) rotate(-8deg);opacity:1}100%{transform:scale(1) rotate(-10deg)}}
+.newlabels{font-size:17px;margin:0;color:#3d5a60}
+.word{display:flex;gap:6px;flex-wrap:wrap}
+.word .stamp{width:52px;height:52px;font-size:28px}
+.letters{display:flex;gap:10px;flex-wrap:wrap}
+.letters .btn{width:60px;height:60px;padding:0;text-align:center;font-family:var(--display);font-weight:700;font-size:28px}
+.letters .btn:disabled{opacity:.25}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+.row .btn{flex:1 1 170px;text-align:center}
+.stats{font-family:var(--display);font-size:19px;display:grid;grid-template-columns:auto auto;gap:6px 20px;justify-content:start;font-variant-numeric:tabular-nums}
+.shake{animation:shake .35s}
+@keyframes shake{25%{transform:translateX(-8px)}50%{transform:translateX(8px)}75%{transform:translateX(-4px)}}
+@media (prefers-reduced-motion:reduce){.shake,.stampbig{animation:none}}
+@media (max-width:620px){
+  .dpad{grid-template-columns:repeat(3,62px);grid-template-rows:repeat(3,62px)}
+  .stamps{grid-template-columns:repeat(8,30px);gap:5px}.stamp{width:30px;height:30px;font-size:16px}
+  #mini{width:120px;height:85px}.chip{font-size:15px;max-width:calc(100% - 150px)}
+  .page{padding:20px 18px 20px 30px}.text{font-size:18px}
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="stage" id="stage">
+    <canvas id="cv" aria-label="Karte von Europa"></canvas>
+    <div class="chip" id="chip"><span class="dot"></span><span id="chipText">Basislager Regensburg</span></div>
+    <canvas id="mini" width="340" height="240" aria-hidden="true"></canvas>
+    <div class="toast" id="toast" hidden></div>
+  </div>
+  <div class="side">
+    <p class="brand">Expedition Europa<small>Lesespur · Länder, Gebirge, Flüsse</small></p>
+    <div class="level" id="level">Stufe <b>–</b></div>
+    <div class="book">
+      <h3>Expeditionsbuch <span id="count">0 / 8</span></h3>
+      <div class="stamps" id="stamps"></div>
+    </div>
+    <div class="dpad" id="dpad">
+      <span></span><button data-d="up" aria-label="nach oben">▲</button><span></span>
+      <button data-d="left" aria-label="nach links">◀</button><span class="hub"></span><button data-d="right" aria-label="nach rechts">▶</button>
+      <span></span><button data-d="down" aria-label="nach unten">▼</button><span></span>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="overlay"><div class="page" id="page"></div></div>
+
+<script>
+(function(){
+"use strict";
+
+/* =========================================================
+   1) KARTE: Projektion & Geodaten (vereinfacht)
+   ========================================================= */
+const LON0=-25, LAT1=72, KX=24, KY=38.7;
+const W=Math.round(87*KX), H=Math.round(38*KY);
+const P=(lon,lat)=>[(lon-LON0)*KX,(LAT1-lat)*KY];
+
+const LAND=[
+ /* Festland Europa + Asien-Rand */
+ [[-5.6,36.0],[-6.3,36.5],[-8.9,37.0],[-9.5,38.7],[-8.9,40.5],[-9.3,43.0],[-8,43.7],[-3.5,43.5],[-1.5,43.4],[-1.2,45.5],[-2.2,47.0],[-4.7,48.4],[-1.6,48.7],[-1.6,49.7],[0.2,49.6],[1.8,50.9],[3.0,51.3],[4.2,52.0],[4.7,53.0],[7.0,53.6],[8.6,53.9],[8.1,55.5],[10.6,57.7],[10.3,56.2],[9.8,55.0],[10.8,54.2],[12.1,54.2],[14.2,53.9],[16.5,54.5],[18.6,54.4],[19.9,54.9],[21.1,55.7],[21.0,56.8],[24.1,57.0],[23.5,58.5],[24.7,59.4],[30.3,59.9],[25,60.2],[22.3,60.0],[21.4,61.5],[21.5,63.0],[25.0,65.0],[24.0,65.8],[21.5,64.5],[18.0,62.5],[17.2,61.0],[18.6,60.2],[18.5,59.3],[16.6,57.0],[16.0,56.2],[14.2,55.4],[12.9,55.6],[12.6,56.3],[11.8,57.7],[11.2,59.0],[10.6,59.0],[8.0,58.1],[7.0,58.0],[5.6,58.9],[5.0,60.4],[5.2,62.0],[8.0,63.4],[10.3,64.3],[12.5,66.0],[14.5,68.0],[16.0,69.0],[19,70],[25.8,71.1],[28.5,70.9],[33.0,69.4],[41.0,67.5],[40.0,66.0],[40.5,64.5],[44,66.0],[53,68.5],[60,69.5],[63,69.5],[63,33],[35.5,33],[35.9,35.5],[36.0,36.6],[35.5,36.6],[34,36.3],[32.5,36.1],[30.5,36.3],[28.0,36.7],[27.3,37.5],[26.4,38.7],[26.2,39.9],[26.2,40.6],[24.0,40.7],[23.0,40.4],[22.9,40.6],[22.9,39.3],[23.5,38.0],[22.8,37.5],[22.5,36.4],[21.7,36.8],[21.1,37.8],[21.0,39.0],[19.4,40.4],[19.5,41.8],[18.6,42.4],[16.0,43.5],[14.5,45.0],[13.7,45.6],[12.3,45.4],[12.4,44.3],[13.5,43.6],[16.0,41.8],[16.2,41.9],[18.5,40.1],[17.0,40.4],[16.5,39.0],[15.6,38.0],[15.8,39.5],[14.5,40.6],[12.4,41.7],[10.5,42.9],[8.9,44.4],[7.3,43.7],[5.4,43.3],[3.1,43.0],[3.2,41.9],[2.2,41.4],[0.8,40.7],[-0.3,39.5],[0.2,38.7],[-0.7,37.6],[-2.1,36.7],[-4.4,36.7]],
+ /* Afrika */
+ [[-7.5,33],[-6.9,34.0],[-6.0,35.5],[-5.4,35.9],[-2,35.1],[1,36.5],[3,36.8],[8.6,36.9],[10.2,37.3],[11.1,36.9],[10.5,35.5],[11.0,34.0],[11.5,33]],
+ /* Großbritannien */
+ [[-5.7,50.1],[-3.0,50.6],[1.4,51.2],[1.7,52.6],[0.2,53.4],[-0.1,54.5],[-1.6,55.6],[-2.0,57.6],[-3.3,58.6],[-5.0,58.6],[-5.6,57.5],[-6.0,56.3],[-4.9,55.0],[-3.2,54.8],[-3.4,53.5],[-4.6,53.3],[-4.2,52.2],[-5.2,51.7],[-3.0,51.4],[-5.0,51.0]],
+ /* Irland */
+ [[-6.0,52.2],[-6.2,53.4],[-5.5,54.6],[-7.0,55.3],[-8.5,54.9],[-10.0,54.2],[-9.8,53.0],[-10.3,51.9],[-8.5,51.6]],
+ /* Island */
+ [[-22.5,63.9],[-18.5,63.4],[-14.5,64.3],[-13.6,65.2],[-15.0,66.3],[-17.0,66.1],[-22.4,66.4],[-24.2,65.5],[-22,64.6]],
+ /* Sizilien, Sardinien, Korsika, Kreta, Zypern, Mallorca, Seeland */
+ [[12.4,38.1],[15.6,38.3],[15.1,36.7],[12.6,37.6]],
+ [[8.2,41.0],[9.8,41.2],[9.6,39.0],[8.4,38.9]],
+ [[8.6,42.9],[9.5,43.0],[9.4,41.5],[8.8,41.4]],
+ [[23.5,35.6],[26.3,35.3],[26.0,34.9],[23.6,35.15]],
+ [[32.3,34.7],[34.5,35.6],[33.9,34.9],[32.9,34.6]],
+ [[2.3,39.55],[3.5,39.95],[3.4,39.3],[2.6,39.3]],
+ [[11.0,55.4],[12.6,56.0],[12.4,55.0],[11.4,55.0]]
+];
+const INNER_SEAS=[
+ /* Schwarzes Meer + Asowsches Meer */
+ [[29.1,41.2],[28.0,41.6],[27.9,43.0],[28.7,44.2],[29.7,45.2],[30.7,46.5],[32.5,45.4],[33.5,44.5],[35.4,45.0],[36.6,45.4],[38,47],[39.3,47.2],[37.5,46.2],[38.3,45.6],[37.5,44.7],[39.7,43.5],[41.6,41.6],[40,41.0],[36.0,41.7],[35.1,42.0],[31.5,41.2]],
+ /* Kaspisches Meer */
+ [[47.5,45.7],[47.0,44.5],[46.8,43],[47.5,42],[49.5,40.5],[49,38.5],[51,36.8],[54,37.3],[53.8,40.5],[52.8,41.5],[53,43],[51.3,44.5],[50.5,45.3],[53,46.5],[51.5,47.0],[49.2,46.6]],
+ /* Marmarameer */
+ [[26.7,40.4],[27.5,40.95],[29.0,41.02],[29.4,40.75],[29.0,40.4],[28.0,40.35],[27.0,40.25]]
+];
+const RIVERS={
+ donau:[[8.5,48.0],[10.0,48.4],[11.4,48.75],[12.1,49.02],[13.5,48.6],[16.4,48.2],[17.1,48.1],[18.9,47.8],[19.04,47.5],[18.9,45.9],[20.5,44.8],[22.5,44.6],[24.0,43.7],[26.0,44.0],[27.9,44.2],[28.2,45.4],[29.7,45.2]],
+ rhein:[[9.0,46.6],[9.6,47.5],[8.6,47.6],[7.6,47.6],[8.1,49.0],[8.3,50.0],[7.6,50.4],[7.0,50.9],[6.8,51.4],[6.1,51.9],[4.2,51.9]],
+ elbe:[[15.6,50.7],[14.3,50.4],[13.7,51.0],[11.7,52.1],[10.0,53.5],[8.7,53.9]],
+ wolga:[[33.0,57.0],[37.5,57.5],[40,57.6],[44,56.3],[49.1,55.8],[49.0,53.5],[50.1,53.2],[46.0,51.5],[44.5,48.7],[48.0,46.3],[48.5,45.9]],
+ loire:[[4.0,44.9],[3.6,46.4],[2.9,47.4],[1.9,47.9],[0.7,47.4],[-1.6,47.2],[-2.2,47.3]],
+ seine:[[4.7,47.8],[3.0,48.4],[2.35,48.85],[1.0,49.3],[0.1,49.5]],
+ themse:[[-2.0,51.7],[-1.2,51.75],[-0.1,51.5],[1.0,51.5]],
+ weichsel:[[18.9,49.6],[19.9,50.05],[21.0,52.2],[18.6,53.0],[18.8,54.4]],
+ dnepr:[[33,55.9],[30.3,54.0],[30.5,50.45],[35.0,48.5],[33.4,46.8],[32.0,46.6]],
+ po:[[7.0,44.7],[7.7,45.1],[9.6,45.1],[12.5,44.95]]
+};
+const STRAITS=[[[26.1,40.0],[26.7,40.4]],[[29.0,41.0],[29.1,41.25]]];
+const MOUNTAINS={
+ alpen:{pts:[[5.6,44.2],[6.86,45.83],[8.0,46.3],[10.0,46.6],[12.0,47.0],[14.0,47.2],[16.0,47.6]],snow:true,w:20},
+ pyrenaeen:{pts:[[-1.8,43.1],[0.6,42.7],[3.0,42.45]],snow:true,w:12},
+ apennin:{pts:[[9.0,44.4],[11.0,44.0],[13.0,42.6],[15.0,41.0],[16.2,39.3]],snow:false,w:10},
+ karpaten:{pts:[[17.5,48.6],[20.0,49.2],[23.0,49.0],[25.0,47.7],[25.8,45.8],[23.0,45.4],[22.0,45.0]],snow:false,w:14},
+ skandinavien:{pts:[[7.0,59.5],[8.3,61.6],[11.5,63.5],[14.0,66.0],[17.0,68.0],[20.0,69.3]],snow:true,w:16},
+ ural:{pts:[[59.5,67.5],[60.0,64],[59.0,60],[59.5,56],[58.5,52],[58.0,50.5]],snow:false,w:12},
+ kaukasus:{pts:[[37.8,44.6],[40,43.6],[42.44,43.35],[45,42.5],[47.5,41.6]],snow:true,w:14}
+};
+
+/* Beschriftungen: werden durch Stationen freigeschaltet */
+const LABELS={
+ atlantik:["Atlantischer Ozean",-17,47,"sea"], mittelmeer:["Mittelmeer",17,35.6,"sea"], nordpolarmeer:["Nordpolarmeer",4,70.3,"sea"],
+ ostsee:["Ostsee",19.6,55.7,"sea"], nordsee:["Nordsee",3,56,"sea"], gibraltar:["Straße von Gibraltar",-5.4,35.5,"small"],
+ iberisch:["Iberische Halbinsel",-4,40.0,"region"],
+ deutschland:["Deutschland",10.3,51.0,"country"], berlin:["Berlin",13.4,52.52,"city"], polen:["Polen",19.5,52.2,"country"],
+ tschechien:["Tschechien",15.4,49.8,"country"], oesterreich:["Österreich",15.3,48.0,"country"], schweiz:["Schweiz",7.9,47.1,"country"],
+ frankreich:["Frankreich",2.5,46.8,"country"], luxemburg:["Lux.",6.1,49.7,"country"], belgien:["Belgien",4.5,50.6,"country"],
+ niederlande:["Niederlande",5.6,52.5,"country"], daenemark:["Dänemark",9.3,56.3,"country"],
+ alpen:["Alpen",11.6,46.3,"mount"], montblanc:["Mont Blanc 4 807 m",6.86,45.83,"peak"], zugspitze:["Zugspitze 2 962 m",10.98,47.42,"peak"],
+ skand:["Skandinavisches Gebirge",13.5,65.3,"mount"], galdhoe:["Galdhøpiggen 2 469 m",8.31,61.64,"peak"], pyr:["Pyrenäen",0.6,42.0,"mount"],
+ apennin:["Apennin",13.8,42.2,"mount"], karpaten:["Karpaten",25.4,47.2,"mount"], ural:["Ural",59.2,61,"mount"], kaukasus:["Kaukasus",43.5,44.0,"mount"],
+ elbrus:["Elbrus 5 642 m",42.44,43.35,"peak"],
+ donau:["Donau",24.5,44.35,"river"], schwarzes:["Schwarzes Meer",34,43.3,"sea"], wien:["Wien",16.37,48.2,"city"], budapest:["Budapest",19.04,47.5,"city"],
+ regensburg:["Regensburg",12.1,49.02,"city"],
+ wolga:["Wolga",47.6,54.3,"river"], rhein:["Rhein",7.0,50.0,"river"], kaspisch:["Kaspisches Meer",51.2,42.3,"sea"], rotterdam:["Rotterdam",4.3,51.9,"city"],
+ istanbul:["Istanbul",28.98,41.01,"city"], bosporus:["Bosporus",29.9,41.5,"small"], tuerkei:["Türkei",35,38.7,"country"], ankara:["Ankara",32.85,39.93,"city"],
+ moskau:["Moskau",37.62,55.75,"city"], irland:["Irland",-8,53.2,"country"], lissabon:["Lissabon",-9.14,38.72,"city"]
+};
+const STATIC_LABELS=[["AFRIKA",3,34.3],["ASIEN",52,58.5]];
+
+/* =========================================================
+   2) INHALTE: 8 Stationen, je 2 Fragen pro Stufe
+   ========================================================= */
+const STATIONS=[
+ {id:1,letter:"F",lon:-5.35,lat:36.14,place:"Straße von Gibraltar",title:"Ein Kontinent am Meer",
+  labels:["atlantik","mittelmeer","nordpolarmeer","ostsee","gibraltar","iberisch"],
+  t2:["Europa ist ein Kontinent. Er ist der zweitkleinste Kontinent der Erde. Nur Australien ist noch kleiner.",
+      "Europa ist an drei Seiten von Wasser umgeben. Im Westen liegt der Atlantische Ozean. Im Norden liegt das Nordpolarmeer. Im Süden liegt das Mittelmeer.",
+      "Du stehst jetzt an der Straße von Gibraltar. Hier ist Europa nur 14 Kilometer von Afrika entfernt. Bei klarem Wetter kann man hinüberschauen.",
+      "Europa hat viele Halbinseln. Spanien und Portugal liegen auf der Iberischen Halbinsel. Italien sieht aus wie ein Stiefel."],
+  q2:[{q:"Welches Meer liegt im Süden von Europa?",a:["das Mittelmeer","das Nordpolarmeer","der Atlantische Ozean"],h:"Lies den zweiten Absatz noch einmal."},
+      {q:"Wie weit ist Afrika an der Straße von Gibraltar entfernt?",a:["14 Kilometer","140 Kilometer","1 400 Kilometer"],h:"Suche die Zahl im dritten Absatz."}],
+  t3:["Europa ist der zweitkleinste Kontinent der Erde, nur Australien ist kleiner. Trotzdem leben hier über 700 Millionen Menschen.",
+      "Europa ist an drei Seiten von Wasser umgeben: im Westen vom Atlantischen Ozean, im Norden vom Nordpolarmeer und im Süden vom Mittelmeer. Dazu kommen Nebenmeere wie die Nordsee, die Ostsee und das Schwarze Meer.",
+      "Hier an der Straße von Gibraltar treffen das Mittelmeer und der Atlantik aufeinander. Europa und Afrika sind an dieser Stelle nur 14 Kilometer voneinander entfernt.",
+      "Nur im Osten hat Europa eine lange Grenze an Land. Dort hängt es mit Asien zusammen. Deshalb nennt man beide Kontinente zusammen auch Eurasien.",
+      "Typisch für Europa sind die vielen Halbinseln, zum Beispiel die Iberische, die Apenninische und die Skandinavische Halbinsel. Die größte Insel Europas ist Großbritannien."],
+  q3:[{q:"Warum nennt man Europa und Asien zusammen auch „Eurasien“?",a:["Weil Europa und Asien an Land zusammenhängen.","Weil Europa und Asien gleich groß sind.","Weil zwischen Europa und Asien das Mittelmeer liegt."],h:"Lies den vierten Absatz: Wo hat Europa eine Grenze an Land?"},
+      {q:"Ein Schiff fährt vom Mittelmeer in den Atlantik. Durch welche Meerenge muss es fahren?",a:["durch die Straße von Gibraltar","durch den Bosporus","durch einen Fjord"],h:"Wo treffen Mittelmeer und Atlantik aufeinander? Du bist gerade dort."}]
+ },
+ {id:2,letter:"O",lon:13.4,lat:52.52,place:"Berlin",title:"Länder und Nachbarn",
+  labels:["deutschland","berlin","polen","tschechien","oesterreich","schweiz","frankreich","luxemburg","belgien","niederlande","daenemark"],
+  t2:["In Europa gibt es über 40 Länder. Jedes Land hat eine Hauptstadt. Du bist jetzt in Berlin. Berlin ist die Hauptstadt von Deutschland.",
+      "Deutschland liegt in der Mitte von Europa. Es hat neun Nachbarländer: Dänemark, Polen, Tschechien, Österreich, die Schweiz, Frankreich, Luxemburg, Belgien und die Niederlande.",
+      "Viele Länder in Europa arbeiten in der Europäischen Union zusammen. Kurz sagt man EU. Zur EU gehören 27 Länder. Deutschland ist eines davon.",
+      "In 21 Ländern der EU bezahlt man mit dem Euro. Darum braucht man zum Beispiel in Österreich, Frankreich oder Italien kein anderes Geld."],
+  q2:[{q:"Wie viele Nachbarländer hat Deutschland?",a:["neun","sieben","zwölf"],h:"Zähle die Länder im zweiten Absatz."},
+      {q:"Wie viele Länder gehören zur EU?",a:["27","21","40"],h:"Achtung: 21 ist die Zahl der Länder mit dem Euro."}],
+  t3:["In Europa gibt es je nach Zählweise 44 bis 47 Staaten. Das größte Land ist Russland. Es liegt aber nur zum Teil in Europa, der größere Teil liegt in Asien. Das kleinste Land der Welt liegt mitten in Rom: die Vatikanstadt.",
+      "Deutschland liegt in Mitteleuropa und hat neun Nachbarländer: Dänemark im Norden, Polen und Tschechien im Osten, Österreich und die Schweiz im Süden sowie Frankreich, Luxemburg, Belgien und die Niederlande im Westen.",
+      "27 Staaten haben sich zur Europäischen Union (EU) zusammengeschlossen. Wer in einem EU-Land lebt, darf in jedem anderen EU-Land wohnen und arbeiten.",
+      "Nicht alle Länder Europas gehören zur EU. Die Schweiz und Norwegen zum Beispiel sind nicht dabei. Den Euro als gemeinsames Geld haben 21 EU-Länder eingeführt."],
+  q3:[{q:"Familie Yilmaz fährt von Passau aus nach Süden über die Grenze. In welchem Land ist sie jetzt?",a:["in Österreich","in Tschechien","in Polen"],h:"Welche Nachbarländer liegen im Süden? Schau auf die Karte: Passau liegt an der Donau, ganz im Osten von Bayern."},
+      {q:"Welche Aussage stimmt?",a:["Es gibt mehr EU-Länder als Euro-Länder.","Alle Länder Europas gehören zur EU.","In der Schweiz bezahlt man mit dem Euro, weil sie in der EU ist."],h:"Vergleiche die Zahlen 27 und 21. Und lies, was über die Schweiz steht."}]
+ },
+ {id:3,letter:"R",lon:6.86,lat:45.83,place:"Mont Blanc, Frankreich",title:"Die Alpen",
+  labels:["alpen","montblanc","zugspitze"],
+  t2:["Die Alpen sind das höchste Gebirge in Mitteleuropa. Sie ziehen sich wie ein großer Bogen über rund 1 200 Kilometer.",
+      "Acht Länder haben Anteil an den Alpen. Dazu gehört auch Deutschland. Der höchste Berg Deutschlands ist die Zugspitze. Sie ist 2 962 Meter hoch.",
+      "Der höchste Berg der Alpen ist der Mont Blanc. Der Name ist Französisch und bedeutet „weißer Berg“. Sein Gipfel ist immer mit Eis und Schnee bedeckt. Er ist 4 807 Meter hoch.",
+      "Die Höhe des Mont Blanc ändert sich ein wenig. Liegt mehr Schnee auf dem Gipfel, ist er höher. Deshalb wird er alle zwei Jahre neu gemessen."],
+  q2:[{q:"Was bedeutet der Name „Mont Blanc“?",a:["weißer Berg","hoher Berg","kalter Berg"],h:"Lies den dritten Absatz."},
+      {q:"Wie hoch ist die Zugspitze?",a:["2 962 Meter","4 807 Meter","1 200 Meter"],h:"Die Zugspitze ist der höchste Berg Deutschlands. Lies den zweiten Absatz."}],
+  t3:["Die Alpen sind das höchste Gebirge in Mitteleuropa. Sie ziehen sich in einem Bogen über rund 1 200 Kilometer von Frankreich bis nach Österreich und Slowenien. Acht Staaten haben Anteil an den Alpen, auch Deutschland mit der Zugspitze (2 962 m).",
+      "Der höchste Berg der Alpen ist der Mont Blanc an der Grenze zwischen Frankreich und Italien. Im September 2026 haben Fachleute 4 807 Meter gemessen. Das sind fast zwei Meter mehr als bei der Messung im Jahr 2023.",
+      "Warum ist das so? Die Höhe hängt von der Schicht aus Eis und Schnee auf dem Gipfel ab. Wind und Niederschlag verändern diese Schicht ständig.",
+      "In den Alpen gibt es viele Gletscher. Das sind riesige Eisflüsse, die sehr langsam ins Tal fließen. Weil es auf der Erde wärmer wird, schmelzen die meisten Gletscher. Viele sind heute schon viel kleiner als vor 100 Jahren."],
+  q3:[{q:"Warum ist der Mont Blanc 2026 höher als 2023?",a:["Auf dem Gipfel liegt eine dickere Schicht aus Eis und Schnee.","Der Fels ist aus der Erde gewachsen.","Man hat auf einem anderen Berg gemessen."],h:"Lies den dritten Absatz: Wovon hängt die Höhe ab?"},
+      {q:"Was wird wahrscheinlich mit den Gletschern passieren, wenn es weiter wärmer wird?",a:["Sie werden weiter schrumpfen.","Sie werden schneller wachsen.","Sie fließen bergauf."],h:"Lies den letzten Absatz."}]
+ },
+ {id:4,letter:"S",lon:8.31,lat:61.64,place:"Galdhøpiggen, Norwegen",title:"Gebirge in ganz Europa",
+  labels:["skand","galdhoe","pyr","apennin","karpaten","ural","kaukasus","elbrus"],
+  t2:["Du bist in Norwegen, im Skandinavischen Gebirge. Hier steht der Galdhøpiggen. Er ist 2 469 Meter hoch. Tiefe, schmale Meeresbuchten reichen weit ins Land hinein. Sie heißen Fjorde.",
+      "Europa hat noch mehr Gebirge. Die Pyrenäen liegen zwischen Spanien und Frankreich. Der Apennin zieht sich durch ganz Italien.",
+      "Die Karpaten bilden einen großen Bogen im Osten von Europa. Ganz im Osten liegt das Uralgebirge. Es bildet die Grenze zwischen Europa und Asien."],
+  q2:[{q:"Wie heißen die tiefen Meeresbuchten in Norwegen?",a:["Fjorde","Gletscher","Halbinseln"],h:"Lies den ersten Absatz."},
+      {q:"Welches Gebirge liegt zwischen Spanien und Frankreich?",a:["die Pyrenäen","die Karpaten","der Ural"],h:"Lies den zweiten Absatz."}],
+  t3:["Du bist in Norwegen, im Skandinavischen Gebirge. Sein höchster Berg ist der Galdhøpiggen mit 2 469 Metern. In der Eiszeit haben riesige Gletscher hier tiefe Täler ausgeschürft. Als das Eis schmolz, floss das Meer in diese Täler. So sind die Fjorde entstanden.",
+      "Im Südwesten trennen die Pyrenäen Spanien und Frankreich. Ihr höchster Gipfel ist der Pico de Aneto (3 404 m). Der Apennin bildet das „Rückgrat“ von Italien. Im Osten schwingen sich die Karpaten in einem Bogen unter anderem durch die Slowakei, die Ukraine und Rumänien.",
+      "Ganz im Osten trennt das Uralgebirge Europa von Asien. Es ist nur rund 1 900 Meter hoch, aber etwa 2 500 Kilometer lang.",
+      "Zwischen dem Schwarzen und dem Kaspischen Meer liegt der Kaukasus mit dem Elbrus (5 642 m). Ob der Kaukasus noch zu Europa gehört, darüber sind sich die Fachleute nicht einig."],
+  q3:[{q:"Wie sind die Fjorde entstanden?",a:["Gletscher haben Täler ausgeschürft, dann ist das Meer hineingeflossen.","Flüsse haben sie in den Fels gegraben.","Menschen haben sie als Häfen gebaut."],h:"Lies den ersten Absatz genau."},
+      {q:"Warum ist es schwierig zu sagen, welcher Berg der höchste in Europa ist?",a:["Weil nicht klar ist, ob der Kaukasus mit dem Elbrus zu Europa gehört.","Weil der Ural höher ist als die Alpen.","Weil der Mont Blanc in Asien liegt."],h:"Lies den letzten Absatz."}]
+ },
+ {id:5,letter:"C",lon:19.04,lat:47.5,place:"Budapest, Ungarn",title:"Die Donau",
+  labels:["donau","schwarzes","wien","budapest","regensburg"],
+  t2:["Die Donau ist der zweitlängste Fluss in Europa. Sie ist 2 857 Kilometer lang.",
+      "Sie beginnt in Donaueschingen im Schwarzwald. Dann fließt sie durch Bayern, zum Beispiel durch Regensburg und Passau.",
+      "Kein anderer Fluss der Erde fließt durch so viele Länder wie die Donau. Es sind zehn Länder.",
+      "An der Donau liegen vier Hauptstädte: Wien, Bratislava, Budapest und Belgrad. Du bist gerade in Budapest. Am Ende fließt die Donau ins Schwarze Meer."],
+  q2:[{q:"Wo beginnt die Donau?",a:["in Donaueschingen im Schwarzwald","in Passau","in Wien"],h:"Lies den zweiten Absatz."},
+      {q:"Wohin fließt die Donau am Ende?",a:["ins Schwarze Meer","in die Nordsee","ins Mittelmeer"],h:"Lies den letzten Satz."}],
+  t3:["Die Donau ist mit 2 857 Kilometern der zweitlängste Fluss Europas. Sie entsteht in Donaueschingen im Schwarzwald, wo zwei kleine Flüsse zusammenfließen: die Brigach und die Breg.",
+      "In Bayern fließt sie über Ingolstadt und Regensburg bis nach Passau. Kein Fluss der Erde fließt durch so viele Länder: Die Donau berührt zehn Staaten, darunter Österreich, Ungarn, Serbien und Rumänien. Vier Hauptstädte liegen an ihr: Wien, Bratislava, Budapest und Belgrad.",
+      "Für Schiffe ist die Donau ein wichtiger Weg. Über den Main-Donau-Kanal ist sie mit dem Main und dem Rhein verbunden. So können Schiffe von der Nordsee bis ans Schwarze Meer fahren.",
+      "Kurz vor dem Schwarzen Meer teilt sich die Donau in viele Arme. Dieses Donaudelta liegt in Rumänien und der Ukraine. Hier leben über 300 Vogelarten."],
+  q3:[{q:"Ein Schiff soll von Rotterdam an der Nordsee auf Flüssen bis ans Schwarze Meer fahren. Was braucht es dafür?",a:["den Main-Donau-Kanal","die Wolga","einen Fjord"],h:"Lies den dritten Absatz."},
+      {q:"Was ist das Besondere an der Donau?",a:["Sie fließt durch mehr Länder als jeder andere Fluss der Erde.","Sie ist der längste Fluss Europas.","Sie mündet in die Nordsee."],h:"Achtung: Die Donau ist der zweitlängste Fluss. Lies den zweiten Absatz."}]
+ },
+ {id:6,letter:"H",lon:44.5,lat:48.7,place:"Wolgograd, Russland",title:"Wolga und Rhein",
+  labels:["wolga","rhein","kaspisch","rotterdam","nordsee"],
+  t2:["Du bist an der Wolga in Russland. Sie ist der längste Fluss in Europa. Sie ist 3 530 Kilometer lang. Sie fließt ins Kaspische Meer.",
+      "Auf der Wolga fahren viele Schiffe. Im Winter friert der Fluss aber oft zu. Dann können keine Schiffe fahren.",
+      "Ein anderer wichtiger Fluss ist der Rhein. Er beginnt in den Alpen in der Schweiz. Er fließt durch Deutschland, zum Beispiel an Köln vorbei. In den Niederlanden fließt er in die Nordsee.",
+      "Auf dem Rhein fahren mehr Schiffe als auf jedem anderen Fluss in Europa."],
+  q2:[{q:"Wie heißt der längste Fluss in Europa?",a:["die Wolga","die Donau","der Rhein"],h:"Lies den ersten Absatz."},
+      {q:"Wo beginnt der Rhein?",a:["in den Alpen in der Schweiz","in Köln","in den Niederlanden"],h:"Lies den dritten Absatz."}],
+  t3:["Die Wolga in Russland ist mit 3 530 Kilometern der längste Fluss Europas. Sie ist damit rund 700 Kilometer länger als die Donau. Sie mündet ins Kaspische Meer. Obwohl es „Meer“ heißt, ist es in Wirklichkeit der größte See der Erde.",
+      "Für Russland ist die Wolga ein wichtiger Verkehrsweg. Allerdings friert sie im Winter etwa drei Monate lang zu. Dann ruht der Schiffsverkehr.",
+      "Der Rhein ist nur rund 1 230 Kilometer lang, aber er ist die meistbefahrene Wasserstraße Europas. Er entspringt in den Schweizer Alpen, fließt durch den Bodensee und an Städten wie Basel, Mainz und Köln vorbei.",
+      "In den Niederlanden erreicht der Rhein bei Rotterdam die Nordsee. Rotterdam hat einen der größten Häfen der Welt. Von dort fahren Schiffe in alle Erdteile."],
+  q3:[{q:"Der Rhein ist viel kürzer als die Wolga. Warum fahren trotzdem mehr Schiffe auf dem Rhein?",a:["Er führt zu einem riesigen Hafen an der Nordsee, und er ist nicht monatelang zugefroren.","Er ist breiter als jeder andere Fluss der Erde.","Er fließt ins Kaspische Meer."],h:"Vergleiche: Was passiert mit der Wolga im Winter? Wohin führt der Rhein?"},
+      {q:"Was ist das Kaspische Meer in Wirklichkeit?",a:["ein See","ein Ozean","ein Fluss"],h:"Lies den ersten Absatz bis zum Ende."}]
+ },
+ {id:7,letter:"E",lon:28.98,lat:41.01,place:"Istanbul, Türkei",title:"Zwischen zwei Kontinenten",
+  labels:["istanbul","bosporus","tuerkei","ankara"],
+  t2:["Du bist in Istanbul. Das ist die größte Stadt der Türkei. Sie liegt auf zwei Kontinenten: zum Teil in Europa und zum Teil in Asien.",
+      "Zwischen den beiden Teilen liegt eine schmale Meerenge. Sie heißt Bosporus. Große Brücken verbinden Europa und Asien.",
+      "Die Hauptstadt der Türkei ist aber nicht Istanbul, sondern Ankara. Ankara liegt in Asien.",
+      "Viele Menschen aus Europa machen in der Türkei Urlaub. Sie besuchen die Strände am Mittelmeer oder sehr alte Städte."],
+  q2:[{q:"Wie heißt die Meerenge in Istanbul?",a:["Bosporus","Straße von Gibraltar","Fjord"],h:"Lies den zweiten Absatz."},
+      {q:"Wie heißt die Hauptstadt der Türkei?",a:["Ankara","Istanbul","Athen"],h:"Lies den dritten Absatz."}],
+  t3:["Istanbul ist mit über 15 Millionen Einwohnern die größte Stadt der Türkei. Sie liegt an beiden Ufern des Bosporus. Das ist eine schmale Meerenge zwischen dem Schwarzen Meer und dem Marmarameer.",
+      "Das westliche Ufer des Bosporus gehört zu Europa, das östliche Ufer zu Asien. Drei große Brücken und zwei Tunnel verbinden die beiden Kontinente.",
+      "Nur ein kleiner Teil der Türkei liegt in Europa. Der größte Teil liegt in Asien, auf der Halbinsel Anatolien. Dort liegt auch die Hauptstadt Ankara.",
+      "Trotzdem ist die Türkei eng mit Europa verbunden. Sehr viele Menschen mit türkischen Wurzeln leben in Deutschland, und Millionen Urlauber aus Europa reisen jedes Jahr an die türkische Küste."],
+  q3:[{q:"Ein Bus fährt in Istanbul über eine Bosporus-Brücke von Westen nach Osten. Was passiert?",a:["Er fährt von Europa nach Asien.","Er fährt von Asien nach Europa.","Er fährt vom Mittelmeer in den Atlantik."],h:"Lies den zweiten Absatz: Welches Ufer gehört zu welchem Kontinent?"},
+      {q:"Liegt die Türkei in Europa oder in Asien?",a:["in beiden, aber der größte Teil liegt in Asien","nur in Europa","nur in Asien"],h:"Lies den dritten Absatz."}]
+ },
+ {id:8,letter:"R",lon:37.62,lat:55.75,place:"Moskau, Russland",title:"Das Klima in Europa",
+  labels:["moskau","irland","lissabon"],
+  t2:["Nicht überall in Europa ist das Wetter gleich.",
+      "Im Westen, zum Beispiel in Irland, kommt das Wetter oft vom Atlantik. Die Winter sind mild. Es regnet viel. Das nennt man Seeklima.",
+      "Im Osten, zum Beispiel hier in Moskau, sind die Winter sehr kalt. Die Sommer sind warm. Das nennt man Landklima.",
+      "Im Süden, am Mittelmeer, sind die Sommer heiß und trocken. Deshalb machen dort viele Menschen Urlaub."],
+  q2:[{q:"Wie ist das Wetter beim Seeklima?",a:["milde Winter und viel Regen","sehr kalte Winter","heiße und trockene Sommer"],h:"Lies den zweiten Absatz."},
+      {q:"Wo sind die Sommer heiß und trocken?",a:["am Mittelmeer","in Irland","in Moskau"],h:"Lies den letzten Absatz."}],
+  t3:["Fast ganz Europa liegt in der gemäßigten Zone. Trotzdem ist das Klima nicht überall gleich. Wichtig ist vor allem, wie weit ein Ort vom Atlantik entfernt ist.",
+      "Im Westen bringen Winde vom Atlantik feuchte Luft. Das Meer speichert im Sommer Wärme und gibt sie im Winter wieder ab. Darum sind die Winter in Irland oder Frankreich mild, und es regnet oft. Das nennt man Seeklima.",
+      "Je weiter man nach Osten kommt, desto weniger wirkt das Meer. In Moskau ist es im Januar im Durchschnitt etwa minus 6 Grad kalt, im Juli um 19 Grad warm. Das nennt man Landklima oder Kontinentalklima.",
+      "Im Süden herrscht Mittelmeerklima: Die Sommer sind heiß und trocken, die Winter mild und regnerisch. Hier wachsen Oliven und Zitronen."],
+  q3:[{q:"Warum sind die Winter in Irland milder als in Moskau?",a:["Irland liegt nah am Atlantik, und das Meer gibt im Winter Wärme ab.","Irland liegt viel weiter im Norden.","In Irland gibt es mehr Gebirge."],h:"Lies den zweiten Absatz: Was macht das Meer im Winter?"},
+      {q:"In welcher Stadt ist der Unterschied zwischen Sommer und Winter wahrscheinlich am größten?",a:["in Kasan, weit im Osten Russlands","in Lissabon am Atlantik","in Amsterdam an der Nordsee"],h:"Lies den dritten Absatz: Je weiter nach Osten …"}]
+ }
+];
+const WORD="FORSCHER";
+const BASE={lon:12.1,lat:49.02};
+
+/* =========================================================
+   3) WELT ZEICHNEN (einmalig) + Land/Wasser-Maske
+   ========================================================= */
+function rng(seed){return ()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;};}
+function smoothPath(ctx,pts,closed){
+  const p=pts.map(([lo,la])=>P(lo,la)),n=p.length;ctx.beginPath();
+  if(!closed){ctx.moveTo(p[0][0],p[0][1]);for(let i=1;i<n-1;i++){const mx=(p[i][0]+p[i+1][0])/2,my=(p[i][1]+p[i+1][1])/2;ctx.quadraticCurveTo(p[i][0],p[i][1],mx,my);}ctx.lineTo(p[n-1][0],p[n-1][1]);return;}
+  const m=i=>{const a=p[(i+n)%n],b=p[(i+1)%n];return[(a[0]+b[0])/2,(a[1]+b[1])/2];};
+  let s=m(n-1);ctx.moveTo(s[0],s[1]);for(let i=0;i<n;i++){const e=m(i);ctx.quadraticCurveTo(p[i][0],p[i][1],e[0],e[1]);}ctx.closePath();
+}
+const C={sea:"#2c6e7f",shallow:"#5fa3ad",land:"#e4dcb8",land2:"#d5cc9f",coast:"#3f5f55",river:"#3a87a8",riverHi:"#7cc0d6",mL:"#b8956a",mD:"#8a6a45",snow:"#fbfaf4",ink:"#2d2a22"};
+
+const world=document.createElement("canvas");world.width=W;world.height=H;
+const mask=document.createElement("canvas");mask.width=W;mask.height=H;
+let maskData=null;
+function buildWorld(){
+  const g=world.getContext("2d"),m=mask.getContext("2d");
+  /* Maske */
+  m.fillStyle="#000";m.fillRect(0,0,W,H);m.fillStyle="#fff";
+  LAND.forEach(poly=>{smoothPath(m,poly,true);m.fill();});
+  m.fillStyle="#000";INNER_SEAS.forEach(poly=>{smoothPath(m,poly,true);m.fill();});
+  m.strokeStyle="#000";m.lineCap="round";m.lineJoin="round";m.lineWidth=12;
+  Object.values(RIVERS).forEach(r=>{smoothPath(m,r,false);m.stroke();});
+  STRAITS.forEach(s=>{smoothPath(m,s,false);m.stroke();});
+  maskData=m.getImageData(0,0,W,H).data;
+
+  /* Meer */
+  g.fillStyle=C.sea;g.fillRect(0,0,W,H);
+  const r=rng(7);g.strokeStyle="rgba(255,255,255,.09)";g.lineWidth=1.5;
+  for(let i=0;i<1100;i++){const x=r()*W,y=r()*H;g.beginPath();g.arc(x,y,7,Math.PI*1.15,Math.PI*1.85);g.stroke();}
+  /* Flachwasser + Land */
+  g.lineJoin="round";g.lineCap="round";
+  g.strokeStyle=C.shallow;g.lineWidth=16;LAND.forEach(poly=>{smoothPath(g,poly,true);g.stroke();});
+  g.fillStyle=C.land;LAND.forEach(poly=>{smoothPath(g,poly,true);g.fill();});
+  INNER_SEAS.forEach(poly=>{g.save();smoothPath(g,poly,true);g.fillStyle=C.sea;g.fill();g.clip();g.strokeStyle=C.shallow;g.lineWidth=16;g.stroke();g.restore();});
+  /* Landtextur */
+  const r2=rng(21);
+  for(let i=0;i<9000;i++){const x=Math.floor(r2()*W),y=Math.floor(r2()*H);if(!isLandPx(x,y))continue;g.fillStyle=r2()<.5?"rgba(120,140,70,.10)":"rgba(255,255,255,.18)";g.beginPath();g.arc(x,y,2+r2()*5,0,Math.PI*2);g.fill();}
+  /* Küstenlinie */
+  g.strokeStyle=C.coast;g.lineWidth=1.6;
+  LAND.forEach(poly=>{smoothPath(g,poly,true);g.stroke();});
+  INNER_SEAS.forEach(poly=>{smoothPath(g,poly,true);g.stroke();});
+  /* Gebirge */
+  const r3=rng(99);
+  Object.values(MOUNTAINS).forEach(mt=>{
+    const pts=mt.pts.map(([lo,la])=>P(lo,la));
+    for(let s=0;s<pts.length-1;s++){
+      const [x1,y1]=pts[s],[x2,y2]=pts[s+1],len=Math.hypot(x2-x1,y2-y1),steps=Math.ceil(len/11);
+      const nx=-(y2-y1)/len,ny=(x2-x1)/len;
+      for(let k=0;k<steps;k++){
+        const t=k/steps,bx=x1+(x2-x1)*t,by=y1+(y2-y1)*t;
+        for(let j=0;j<2;j++){
+          const off=(r3()-.5)*mt.w,x=bx+nx*off+(r3()-.5)*6,y=by+ny*off+(r3()-.5)*6;
+          peak(g,x,y,10+r3()*7,mt.snow&&r3()<.8);
+        }
+      }
+    }
+  });
+  /* Flüsse */
+  Object.values(RIVERS).forEach(rv=>{smoothPath(g,rv,false);g.strokeStyle=C.river;g.lineWidth=6;g.stroke();g.strokeStyle=C.riverHi;g.lineWidth=2;g.stroke();});
+  STRAITS.forEach(s=>{smoothPath(g,s,false);g.strokeStyle=C.shallow;g.lineWidth=7;g.stroke();});
+}
+function peak(g,x,y,h,snow){
+  const w=h*1.25;
+  g.fillStyle="rgba(60,40,20,.18)";g.beginPath();g.ellipse(x+2,y+1,w*.55,2.5,0,0,Math.PI*2);g.fill();
+  g.fillStyle=C.mL;g.beginPath();g.moveTo(x-w/2,y);g.lineTo(x,y-h);g.lineTo(x,y);g.closePath();g.fill();
+  g.fillStyle=C.mD;g.beginPath();g.moveTo(x,y-h);g.lineTo(x+w/2,y);g.lineTo(x,y);g.closePath();g.fill();
+  if(snow){g.fillStyle=C.snow;g.beginPath();g.moveTo(x,y-h);g.lineTo(x-w*.18,y-h*.64);g.lineTo(x-w*.04,y-h*.7);g.lineTo(x+w*.06,y-h*.6);g.lineTo(x+w*.18,y-h*.64);g.closePath();g.fill();}
+}
+function isLandPx(x,y){x=Math.round(x);y=Math.round(y);if(x<0||y<0||x>=W||y>=H)return false;return maskData[(y*W+x)*4]>128;}
+
+/* Minikarte-Basis */
+const MW=340,MH=240;
+const miniBase=document.createElement("canvas");miniBase.width=MW;miniBase.height=MH;
+
+/* =========================================================
+   4) FAHRZEUGE
+   ========================================================= */
+function drawJeep(g,x,y,ang,t){
+  g.save();g.translate(x,y);g.rotate(ang);
+  g.fillStyle="rgba(0,0,0,.25)";g.beginPath();g.ellipse(2,3,17,11,0,0,Math.PI*2);g.fill();
+  g.fillStyle="#1d1d1b";[[-10,-10],[6,-10],[-10,7],[6,7]].forEach(([a,b])=>{g.fillRect(a,b,8,4);});
+  g.fillStyle="#9a8a4f";rr(g,-15,-9,30,18,4);g.fill();
+  g.fillStyle="#7a6d3c";rr(g,4,-8,10,16,3);g.fill();          /* Motorhaube */
+  g.fillStyle="#bfe2ec";rr(g,0,-7,4,14,1);g.fill();           /* Scheibe */
+  g.fillStyle="#6b5f34";rr(g,-12,-7,11,14,2);g.fill();        /* Ladefläche */
+  g.fillStyle="#2a2a28";g.beginPath();g.arc(-16,0,4.5,0,Math.PI*2);g.fill(); /* Reserverad */
+  g.fillStyle="#555";g.beginPath();g.arc(-16,0,2,0,Math.PI*2);g.fill();
+  g.fillStyle="#fff7c2";g.fillRect(14,-7,2,3);g.fillRect(14,4,2,3);       /* Scheinwerfer */
+  g.strokeStyle="#222";g.lineWidth=1.2;g.beginPath();g.moveTo(-6,-6);g.lineTo(-10,-16);g.stroke();
+  g.fillStyle="#e2662a";g.beginPath();g.moveTo(-10,-16);g.lineTo(-3+Math.sin(t*8)*1.5,-15);g.lineTo(-10,-12.5);g.closePath();g.fill();
+  g.restore();
+}
+function drawBoat(g,x,y,ang,t){
+  g.save();g.translate(x,y+Math.sin(t*3)*.8);g.rotate(ang+Math.sin(t*2.2)*.03);
+  g.fillStyle="rgba(0,0,0,.2)";g.beginPath();g.ellipse(2,3,19,9,0,0,Math.PI*2);g.fill();
+  g.fillStyle="#f7f4ec";g.beginPath();g.moveTo(-16,-8);g.lineTo(8,-8);g.quadraticCurveTo(20,0,8,8);g.lineTo(-16,8);g.closePath();g.fill();
+  g.strokeStyle="#2d2a22";g.lineWidth=1.2;g.stroke();
+  g.fillStyle="#e2662a";g.beginPath();g.moveTo(-16,-8);g.lineTo(8,-8);g.lineTo(9.5,-5.5);g.lineTo(-16,-5.5);g.closePath();g.fill();
+  g.beginPath();g.moveTo(-16,8);g.lineTo(8,8);g.lineTo(9.5,5.5);g.lineTo(-16,5.5);g.closePath();g.fill();
+  g.fillStyle="#2c6e7f";rr(g,-9,-4.5,11,9,2);g.fill();          /* Kabine */
+  g.fillStyle="#bfe2ec";g.fillRect(0,-3.5,2,7);
+  g.fillStyle="#f7f4ec";g.beginPath();g.arc(-4,0,2.2,0,Math.PI*2);g.fill(); /* Radar */
+  g.strokeStyle="#2d2a22";g.lineWidth=1;g.beginPath();g.moveTo(-4,0);g.lineTo(-4+Math.cos(t*4)*4,Math.sin(t*4)*4);g.stroke();
+  g.restore();
+}
+function rr(g,x,y,w,h,r){g.beginPath();g.moveTo(x+r,y);g.arcTo(x+w,y,x+w,y+h,r);g.arcTo(x+w,y+h,x,y+h,r);g.arcTo(x,y+h,x,y,r);g.arcTo(x,y,x+w,y,r);g.closePath();}
+
+/* =========================================================
+   5) ZUSTAND
+   ========================================================= */
+const state={level:null,solved:{},order:[],wrong:0,start:0,done:false,revealed:{}};
+const base=P(BASE.lon,BASE.lat);
+const car={x:base[0],y:base[1],ang:0,boat:true};
+const stations=STATIONS.map(s=>{const [x,y]=P(s.lon,s.lat);return Object.assign({},s,{x,y,armed:true});});
+let baseArmed=false;
+const pressed=new Set();let overlayOpen=true;let lastT=0;let toastTimer=null;
+const wake=[],puffs=[];let wakeAcc=0;
+const seen={land:false,water:false};
+const revealTime={};
+
+const cv=document.getElementById("cv"),ctx=cv.getContext("2d");
+const mini=document.getElementById("mini"),mctx=mini.getContext("2d");
+const stage=document.getElementById("stage");
+const overlay=document.getElementById("overlay"),page=document.getElementById("page");
+const toastEl=document.getElementById("toast");
+let cssW=0,cssH=0,dpr=1,zoom=1,camX=0,camY=0;
+
+function resize(){
+  cssW=stage.clientWidth;cssH=stage.clientHeight;dpr=Math.min(2,window.devicePixelRatio||1);
+  cv.width=Math.round(cssW*dpr);cv.height=Math.round(cssH*dpr);
+  zoom=Math.max(.75,Math.min(1.35,Math.min(cssW,cssH)/520));
+}
+window.addEventListener("resize",resize);
+
+function toast(msg,ms){toastEl.textContent=msg;toastEl.hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>toastEl.hidden=true,ms||3000);}
+
+function renderBook(){
+  const box=document.getElementById("stamps");box.innerHTML="";
+  for(let i=0;i<8;i++){const id=state.order[i];const d=document.createElement("div");
+    if(id){d.className="stamp full";d.textContent=STATIONS[id-1].letter;}else d.className="stamp";box.appendChild(d);}
+  document.getElementById("count").textContent=state.order.length+" / 8";
+  document.getElementById("level").innerHTML='Stufe <b>'+(state.level===2?"▲":state.level===3?"●":"–")+'</b>';
+}
+
+/* =========================================================
+   6) SPIELSCHLEIFE
+   ========================================================= */
+const DIRV={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]};
+function nextTarget(){
+  const open=stations.filter(s=>!state.solved[s.id]);
+  if(!open.length)return {x:base[0],y:base[1],name:"Zurück ins Basislager Regensburg",base:true};
+  let best=null,bd=1e12;open.forEach(s=>{const d=Math.hypot(s.x-car.x,s.y-car.y);if(d<bd){bd=d;best=s;}});
+  return {x:best.x,y:best.y,name:"Nächstes Fähnchen: Nr. "+best.id,id:best.id};
+}
+function update(dt,t){
+  let vx=0,vy=0;pressed.forEach(d=>{vx+=DIRV[d][0];vy+=DIRV[d][1];});
+  if(!overlayOpen&&(vx||vy)){
+    const l=Math.hypot(vx,vy);vx/=l;vy/=l;const sp=125*dt;
+    car.x=Math.max(14,Math.min(W-14,car.x+vx*sp));car.y=Math.max(14,Math.min(H-14,car.y+vy*sp));
+    const ta=Math.atan2(vy,vx);let da=ta-car.ang;while(da>Math.PI)da-=2*Math.PI;while(da<-Math.PI)da+=2*Math.PI;car.ang+=da*Math.min(1,dt*12);
+    const onLand=isLandPx(car.x,car.y);
+    if(onLand===car.boat){
+      car.boat=!onLand;for(let i=0;i<10;i++)puffs.push({x:car.x,y:car.y,vx:(Math.random()-.5)*60,vy:(Math.random()-.5)*60,life:1});
+      if(onLand&&!seen.land){seen.land=true;toast("Land in Sicht! Du steigst in den Expeditions-Jeep.");}
+      if(!onLand&&!seen.water){seen.water=true;toast("Wasser! Du steigst ins Forschungsboot.");}
+    }
+    if(car.boat){wakeAcc+=dt;if(wakeAcc>.05){wakeAcc=0;wake.push({x:car.x-Math.cos(car.ang)*15,y:car.y-Math.sin(car.ang)*15,life:1});}}
+    else{wakeAcc+=dt;if(wakeAcc>.09){wakeAcc=0;wake.push({x:car.x-Math.cos(car.ang)*15,y:car.y-Math.sin(car.ang)*15,life:.6,dust:true});}}
+  }
+  for(let i=wake.length-1;i>=0;i--){wake[i].life-=dt*1.1;if(wake[i].life<=0)wake.splice(i,1);}
+  for(let i=puffs.length-1;i>=0;i--){const p=puffs[i];p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt*1.6;if(p.life<=0)puffs.splice(i,1);}
+  /* Stationen */
+  if(!overlayOpen&&state.level){
+    stations.forEach(s=>{const d=Math.hypot(s.x-car.x,s.y-car.y);
+      if(d>46)s.armed=true;
+      if(d<22&&s.armed&&!state.solved[s.id]){s.armed=false;pressed.clear();releaseAll();openStation(s);}
+      else if(d<22&&s.armed&&state.solved[s.id]){s.armed=false;toast("Hier hast du schon geforscht: "+s.title);} });
+    const db=Math.hypot(base[0]-car.x,base[1]-car.y);
+    if(db>50)baseArmed=true;
+    if(db<24&&baseArmed){baseArmed=false;
+      if(state.order.length===8){pressed.clear();releaseAll();openFinal();}
+      else toast("Basislager: Du hast "+state.order.length+" von 8 Stempeln. Fahre weiter!");}
+  }
+  /* Kamera */
+  const vw=cssW/zoom,vh=cssH/zoom;
+  camX=Math.max(0,Math.min(W-vw,car.x-vw/2));camY=Math.max(0,Math.min(H-vh,car.y-vh/2));
+  if(vw>W)camX=(W-vw)/2;if(vh>H)camY=(H-vh)/2;
+}
+const FONTS={sea:"italic 600 16px 'Zilla Slab', Georgia, serif",small:"italic 600 13px 'Zilla Slab', Georgia, serif",region:"italic 500 14px 'Zilla Slab', Georgia, serif",
+  country:"700 14px 'Zilla Slab', Georgia, serif",mount:"italic 700 15px 'Zilla Slab', Georgia, serif",peak:"700 12px 'Atkinson Hyperlegible', Arial, sans-serif",
+  river:"italic 700 14px 'Zilla Slab', Georgia, serif",city:"700 13px 'Atkinson Hyperlegible', Arial, sans-serif"};
+function drawLabel(g,key,t){
+  const [txt,lo,la,type]=LABELS[key];const [x,y]=P(lo,la);
+  const age=revealTime[key]?(t-revealTime[key]):99;const pop=age<2.5?(1+Math.max(0,.35*(1-age/0.6))):1;
+  g.save();g.translate(x,y);g.scale(pop,pop);g.font=FONTS[type];g.textAlign="center";g.textBaseline="middle";g.lineJoin="round";
+  let fill=C.ink,halo="rgba(228,220,184,.92)",dy=0,text=txt;
+  if(type==="sea"||type==="small"){fill="#e9f6f4";halo="rgba(44,110,127,.85)";}
+  if(type==="country"){text=txt.toUpperCase();fill="#4a4330";}
+  if(type==="mount"){fill="#6a4524";}
+  if(type==="river"){fill="#1d5c80";}
+  if(type==="region"){fill="#6a6248";}
+  if(type==="city"||type==="peak"){
+    if(type==="city"){g.fillStyle=C.ink;g.beginPath();g.arc(0,0,4,0,Math.PI*2);g.fill();g.fillStyle="#fff";g.beginPath();g.arc(0,0,1.7,0,Math.PI*2);g.fill();}
+    else{g.fillStyle="#6a4524";g.beginPath();g.moveTo(-5,3);g.lineTo(0,-5);g.lineTo(5,3);g.closePath();g.fill();}
+    g.textAlign="left";dy=0;g.translate(8,0);
+  }
+  if(age<2.5){g.shadowColor="rgba(226,102,42,.9)";g.shadowBlur=12*(1-age/2.5);}
+  g.strokeStyle=halo;g.lineWidth=4;g.strokeText(text,0,dy);g.shadowBlur=0;g.fillStyle=fill;g.fillText(text,0,dy);
+  g.restore();
+}
+function draw(t){
+  ctx.setTransform(1,0,0,1,0,0);ctx.fillStyle=C.sea;ctx.fillRect(0,0,cv.width,cv.height);
+  const s=dpr*zoom;ctx.setTransform(s,0,0,s,-camX*s,-camY*s);
+  const vw=cssW/zoom,vh=cssH/zoom;
+  const sx=Math.max(0,Math.floor(camX)),sy=Math.max(0,Math.floor(camY)),sw=Math.min(W-sx,Math.ceil(vw)+2),sh=Math.min(H-sy,Math.ceil(vh)+2);
+  if(sw>0&&sh>0)ctx.drawImage(world,sx,sy,sw,sh,sx,sy,sw,sh);
+  /* statische Kontinente */
+  ctx.font="700 22px 'Zilla Slab', Georgia, serif";ctx.textAlign="center";ctx.fillStyle="rgba(45,42,34,.35)";
+  STATIC_LABELS.forEach(([txt,lo,la])=>{const[x,y]=P(lo,la);ctx.fillText(txt,x,y);});
+  /* Beschriftungen */
+  Object.keys(state.revealed).forEach(k=>drawLabel(ctx,k,t));
+  /* Spuren */
+  wake.forEach(w=>{ctx.globalAlpha=Math.max(0,w.life)*.7;ctx.strokeStyle=w.dust?"#b9a77a":"#ffffff";ctx.lineWidth=2;ctx.beginPath();ctx.arc(w.x,w.y,(w.dust?3:4)+(1-w.life)*(w.dust?6:12),0,Math.PI*2);ctx.stroke();});
+  ctx.globalAlpha=1;
+  /* Basislager */
+  drawCamp(ctx,base[0],base[1],t);
+  /* Stationen */
+  stations.forEach(st=>drawFlag(ctx,st,t));
+  /* Puffs */
+  puffs.forEach(p=>{ctx.globalAlpha=Math.max(0,p.life)*.8;ctx.fillStyle="#fffaf0";ctx.beginPath();ctx.arc(p.x,p.y,4+(1-p.life)*6,0,Math.PI*2);ctx.fill();});ctx.globalAlpha=1;
+  /* Fahrzeug */
+  if(car.boat)drawBoat(ctx,car.x,car.y,car.ang,t);else drawJeep(ctx,car.x,car.y,car.ang,t);
+  /* Zielpfeil */
+  if(state.level&&!state.done){
+    const tg=nextTarget();const scx=(tg.x-camX)*zoom,scy=(tg.y-camY)*zoom;
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    const m=34;
+    if(scx<m||scy<m||scx>cssW-m||scy>cssH-m){
+      const cx=cssW/2,cy=cssH/2,a=Math.atan2(scy-cy,scx-cx);
+      const r=Math.min((cssW/2-m)/Math.abs(Math.cos(a)||1e-6),(cssH/2-m)/Math.abs(Math.sin(a)||1e-6));
+      const ax=cx+Math.cos(a)*r,ay=cy+Math.sin(a)*r;
+      ctx.save();ctx.translate(ax,ay);ctx.rotate(a);ctx.fillStyle="#e2662a";ctx.strokeStyle="#fff";ctx.lineWidth=3;
+      ctx.beginPath();ctx.moveTo(18,0);ctx.lineTo(-10,-13);ctx.lineTo(-4,0);ctx.lineTo(-10,13);ctx.closePath();ctx.stroke();ctx.fill();ctx.restore();
+    }
+    document.getElementById("chipText").textContent=tg.name;
+  }
+  drawMini(t);
+}
+function drawCamp(g,x,y,t){
+  g.save();g.translate(x,y);
+  g.fillStyle="rgba(0,0,0,.2)";g.beginPath();g.ellipse(0,9,16,4,0,0,Math.PI*2);g.fill();
+  g.fillStyle="#2c6e7f";g.beginPath();g.moveTo(-14,9);g.lineTo(0,-10);g.lineTo(14,9);g.closePath();g.fill();
+  g.fillStyle="#1e4f5c";g.beginPath();g.moveTo(-3,9);g.lineTo(0,-1);g.lineTo(3,9);g.closePath();g.fill();
+  g.strokeStyle="#2d2a22";g.lineWidth=1.5;g.beginPath();g.moveTo(0,-10);g.lineTo(0,-22);g.stroke();
+  g.fillStyle="#f7f0dc";g.beginPath();g.moveTo(0,-22);g.lineTo(11+Math.sin(t*5)*1.5,-19);g.lineTo(0,-16);g.closePath();g.fill();
+  g.font="700 12px 'Atkinson Hyperlegible', Arial, sans-serif";g.textAlign="center";g.lineWidth=4;g.strokeStyle="rgba(228,220,184,.95)";g.strokeText("Basislager",0,23);g.fillStyle=C.ink;g.fillText("Basislager",0,23);
+  g.restore();
+}
+function drawFlag(g,st,t){
+  g.save();g.translate(st.x,st.y);
+  if(state.solved[st.id]){
+    g.rotate(-.15);g.strokeStyle="#e2662a";g.lineWidth=3;g.fillStyle="rgba(247,240,220,.9)";g.beginPath();g.arc(0,0,13,0,Math.PI*2);g.fill();g.stroke();
+    g.font="700 15px 'Zilla Slab', Georgia, serif";g.fillStyle="#e2662a";g.textAlign="center";g.textBaseline="middle";g.fillText(st.letter,0,1);
+  }else{
+    const bob=Math.sin(t*3+st.id)*2;
+    g.fillStyle="rgba(226,102,42,.25)";g.beginPath();g.arc(0,0,14+Math.sin(t*4)*3,0,Math.PI*2);g.fill();
+    g.fillStyle="rgba(0,0,0,.25)";g.beginPath();g.ellipse(0,2,6,2,0,0,Math.PI*2);g.fill();
+    g.strokeStyle="#2d2a22";g.lineWidth=2;g.beginPath();g.moveTo(0,2);g.lineTo(0,-26+bob);g.stroke();
+    g.fillStyle="#e2662a";g.beginPath();g.moveTo(0,-26+bob);g.lineTo(20,-20+bob);g.lineTo(0,-13+bob);g.closePath();g.fill();
+    g.font="700 11px 'Atkinson Hyperlegible', Arial, sans-serif";g.fillStyle="#fff";g.textBaseline="middle";g.fillText(String(st.id),4,-19.5+bob);
+  }
+  g.restore();
+}
+function drawMini(t){
+  mctx.setTransform(1,0,0,1,0,0);mctx.drawImage(miniBase,0,0);
+  const sx=MW/W,sy=MH/H;
+  mctx.strokeStyle="rgba(255,255,255,.9)";mctx.lineWidth=2;mctx.strokeRect(camX*sx,camY*sy,(cssW/zoom)*sx,(cssH/zoom)*sy);
+  stations.forEach(s=>{mctx.fillStyle=state.solved[s.id]?"#3f8a4a":"#e2662a";mctx.beginPath();mctx.arc(s.x*sx,s.y*sy,5,0,Math.PI*2);mctx.fill();});
+  mctx.fillStyle="#2c6e7f";mctx.fillRect(base[0]*sx-4,base[1]*sy-4,8,8);
+  mctx.fillStyle="#fff";mctx.strokeStyle="#2d2a22";mctx.lineWidth=2;mctx.beginPath();mctx.arc(car.x*sx,car.y*sy,5+Math.sin(t*6)*1,0,Math.PI*2);mctx.fill();mctx.stroke();
+}
+function loop(now){
+  const t=now/1000;const dt=lastT?Math.min(.05,t-lastT):.016;lastT=t;
+  update(dt,t);draw(t);requestAnimationFrame(loop);
+}
+
+/* =========================================================
+   7) STEUERKREUZ (Multitouch, gedrückt halten)
+   ========================================================= */
+const dpad=document.getElementById("dpad");
+const ptrDir=new Map();
+function releaseAll(){ptrDir.clear();dpad.querySelectorAll("button").forEach(b=>b.classList.remove("on"));}
+dpad.querySelectorAll("button").forEach(b=>{
+  const d=b.dataset.d;
+  b.addEventListener("pointerdown",e=>{e.preventDefault();try{b.setPointerCapture(e.pointerId);}catch(_){}ptrDir.set(e.pointerId,d);pressed.add(d);b.classList.add("on");});
+  const up=e=>{ptrDir.delete(e.pointerId);if(![...ptrDir.values()].includes(d)){pressed.delete(d);b.classList.remove("on");}};
+  b.addEventListener("pointerup",up);b.addEventListener("pointercancel",up);b.addEventListener("lostpointercapture",up);
+  b.addEventListener("contextmenu",e=>e.preventDefault());
+});
+dpad.addEventListener("touchstart",e=>e.preventDefault(),{passive:false});
+const KEYS={ArrowUp:"up",ArrowDown:"down",ArrowLeft:"left",ArrowRight:"right"};
+window.addEventListener("keydown",e=>{const d=KEYS[e.key];if(d&&!overlayOpen){e.preventDefault();pressed.add(d);}});
+window.addEventListener("keyup",e=>{const d=KEYS[e.key];if(d)pressed.delete(d);});
+window.addEventListener("blur",()=>{pressed.clear();releaseAll();});
+
+/* =========================================================
+   8) FELDBUCH-SEITEN
+   ========================================================= */
+function el(tag,cls,html){const e=document.createElement(tag);if(cls)e.className=cls;if(html!=null)e.innerHTML=html;return e;}
+function btn(cls,html,fn){const b=el("button",cls,html);b.type="button";if(fn)b.addEventListener("click",fn);return b;}
+function show(){overlayOpen=true;overlay.hidden=false;page.scrollTop=0;}
+function hide(){overlayOpen=false;overlay.hidden=true;pressed.clear();releaseAll();}
+function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+function shakePage(){page.classList.remove("shake");void page.offsetWidth;page.classList.add("shake");}
+
+function vehiclePreview(kind){const c=document.createElement("canvas");c.width=128;c.height=128;const g=c.getContext("2d");g.scale(2,2);
+  if(kind==="boat")drawBoat(g,32,32,-.5,0);else{g.fillStyle="#e4dcb8";g.fillRect(0,0,64,64);drawJeep(g,32,32,-.5,0);}return c;}
+
+function openStart(){
+  page.innerHTML="";
+  page.appendChild(el("p","eyebrow","Lesespur · Europa"));
+  page.appendChild(el("h1",null,"Expedition Europa"));
+  page.appendChild(el("p","lead","Du bist Forscherin oder Forscher und erkundest Europa. Auf deiner Karte stehen <b>acht orange Fähnchen</b>. An jedem Fähnchen wartet eine Seite aus dem Feldbuch. Lies sie genau und beantworte zwei Fragen."));
+  const v=el("div","vehicles");
+  const f1=el("figure");f1.appendChild(vehiclePreview("boat"));f1.appendChild(el("span",null,"Auf Meeren und Flüssen fährst du das <b>Forschungsboot</b>."));
+  const f2=el("figure");f2.appendChild(vehiclePreview("jeep"));f2.appendChild(el("span",null,"An Land fährst du den <b>Expeditions-Jeep</b>."));
+  v.appendChild(f1);v.appendChild(f2);page.appendChild(v);
+  page.appendChild(el("p","lead","Für jede geschaffte Station bekommst du einen <b>Stempel mit Buchstaben</b>. Mit allen acht Stempeln fährst du zurück ins Basislager und findest das Lösungswort."));
+  page.appendChild(el("p","q","Wähle deine Stufe:"));
+  const lv=el("div","levels");
+  [[2,"▲","Dreieck"],[3,"●","Kreis"]].forEach(([n,s,name])=>{
+    lv.appendChild(btn("btn",'<span class="shape">'+s+'</span>'+name,()=>{state.level=n;state.start=Date.now();renderBook();openHowto();}));
+  });
+  page.appendChild(lv);show();
+}
+function openHowto(){
+  page.innerHTML="";
+  page.appendChild(el("p","eyebrow","So steuerst du"));
+  page.appendChild(el("h2",null,"Leinen los!"));
+  page.appendChild(el("p","lead","Halte einen Pfeil auf dem Steuerkreuz gedrückt, dann fährst du los. Mit zwei Fingern kannst du auch schräg fahren."));
+  page.appendChild(el("p","lead","Der <b>orange Pfeil</b> am Kartenrand zeigt dir den Weg zum nächsten Fähnchen. Oben rechts siehst du die ganze Europakarte im Kleinen."));
+  page.appendChild(el("p","lead","Du startest im Basislager in <b>Regensburg</b> an der Donau. Wohin fährst du zuerst?"));
+  page.appendChild(btn("btn primary","Expedition starten",()=>{hide();toast("Du bist im Forschungsboot auf der Donau. Fahre los!");}));
+  show();
+}
+
+function openStation(s){
+  const lvl=state.level,text=lvl===2?s.t2:s.t3,qs=lvl===2?s.q2:s.q3;
+  page.innerHTML="";
+  page.appendChild(el("p","eyebrow","Fähnchen "+s.id+" von 8"));
+  page.appendChild(el("h2",null,s.title));
+  page.appendChild(el("p","place","📍 "+s.place));
+  const tx=el("div","text");text.forEach(p=>tx.appendChild(el("p",null,p)));page.appendChild(tx);
+  const area=el("div");area.style.display="flex";area.style.flexDirection="column";area.style.gap="16px";page.appendChild(area);
+  const close=btn("btn","Seite schließen und später wiederkommen",()=>{hide();});close.style.textAlign="center";
+  function ask(i){
+    const q=qs[i];let tries=0;
+    const box=el("div","qbox");
+    box.appendChild(el("p","qnum","Frage "+(i+1)+" von 2"));
+    box.appendChild(el("p","q",q.q));
+    const list=el("div","answers");const fb=el("p","feedback");fb.hidden=true;const hn=el("p","hint");hn.hidden=true;
+    shuffle(q.a.map((a,k)=>({a,ok:k===0}))).forEach(o=>{
+      const b=btn("btn",o.a,()=>{
+        if(o.ok){
+          list.querySelectorAll("button").forEach(x=>x.disabled=true);b.classList.add("right");
+          fb.className="feedback good";fb.textContent=i===0?"Richtig! Weiter zur zweiten Frage.":"Richtig! Station geschafft.";fb.hidden=false;hn.hidden=true;
+          if(i===0){setTimeout(()=>{ask(1);},350);}else{setTimeout(()=>finishStation(s),500);}
+        }else{
+          tries++;state.wrong++;b.classList.add("wrong");b.disabled=true;
+          fb.className="feedback bad";fb.textContent="Das stimmt noch nicht. Lies im Text nach.";fb.hidden=false;
+          hn.innerHTML="<b>Tipp:</b> "+q.h;hn.hidden=false;shakePage();
+        }
+      });list.appendChild(b);
+    });
+    box.appendChild(list);box.appendChild(fb);box.appendChild(hn);
+    area.appendChild(box);
+    if(i>0)setTimeout(()=>box.scrollIntoView({behavior:"smooth",block:"start"}),60);
+  }
+  ask(0);page.appendChild(close);show();
+}
+function finishStation(s){
+  state.solved[s.id]=true;state.order.push(s.id);renderBook();
+  const now=performance.now()/1000;
+  s.labels.forEach(k=>{state.revealed[k]=true;revealTime[k]=now+0.2;});
+  page.innerHTML="";
+  page.appendChild(el("p","eyebrow","Station geschafft"));
+  page.appendChild(el("h2",null,s.title));
+  page.appendChild(el("div","stampbig",s.letter));
+  page.appendChild(el("p","lead","Du bekommst den Stempel mit dem Buchstaben <b>"+s.letter+"</b>."));
+  const names=s.labels.map(k=>LABELS[k][0].replace(/ \d[\d ]* m$/,"")).join(", ");
+  page.appendChild(el("p","newlabels","<b>Neu auf deiner Karte:</b> "+names));
+  const left=8-state.order.length;
+  page.appendChild(btn("btn primary",left?("Weiterfahren (noch "+left+" Fähnchen)"):"Zurück ins Basislager",()=>{hide();if(!left)toast("Alle Stempel gesammelt! Fahre zurück ins Basislager nach Regensburg.",4500);}));
+  show();
+}
+function openFinal(){
+  let picked=[];
+  page.innerHTML="";
+  page.appendChild(el("p","eyebrow","Basislager Regensburg"));
+  page.appendChild(el("h2",null,"Das Lösungswort"));
+  page.appendChild(el("p","lead","Du hast alle acht Stempel. Bring die Buchstaben in die richtige Reihenfolge. Tipp: Das Wort beschreibt, was du auf dieser Expedition bist."));
+  const word=el("div","word"),letters=el("div","letters"),fb=el("p","feedback");fb.hidden=true;
+  function paint(){word.innerHTML="";for(let i=0;i<WORD.length;i++){word.appendChild(el("div","stamp"+(picked[i]?" full":""),picked[i]?picked[i].ch:""));}}
+  let pool=shuffle(WORD.split("").map((ch,i)=>({ch,i})));if(pool.map(p=>p.ch).join("")===WORD)pool.reverse();
+  pool.forEach(p=>{const b=btn("btn",p.ch,()=>{
+    if(picked.length>=WORD.length)return;picked.push(p);b.disabled=true;paint();
+    if(picked.length===WORD.length){
+      if(picked.map(x=>x.ch).join("")===WORD)setTimeout(openEnd,500);
+      else{state.wrong++;fb.className="feedback bad";fb.textContent="Das ergibt noch kein Wort. Versuch es noch einmal!";fb.hidden=false;shakePage();
+        setTimeout(()=>{picked.forEach(x=>x.btn.disabled=false);picked=[];paint();},900);}
+    }});p.btn=b;letters.appendChild(b);});
+  paint();page.appendChild(word);page.appendChild(letters);page.appendChild(fb);
+  const row=el("div","row");
+  row.appendChild(btn("btn","Letzten Buchstaben löschen",()=>{const p=picked.pop();if(p)p.btn.disabled=false;paint();fb.hidden=true;}));
+  row.appendChild(btn("btn","Zurück zur Karte",hide));
+  page.appendChild(row);show();
+}
+function openEnd(){
+  state.done=true;document.getElementById("chipText").textContent="Expedition geschafft!";
+  const min=Math.max(1,Math.round((Date.now()-state.start)/60000));
+  page.innerHTML="";
+  page.appendChild(el("p","eyebrow","Expedition geschafft"));
+  page.appendChild(el("h1",null,"Du bist ein echter FORSCHER-Profi!"));
+  page.appendChild(el("p","lead","Du hast acht Orte in Europa erforscht und deine Karte vollständig beschriftet. Zeige diesen Bildschirm deiner Lehrkraft."));
+  const st=el("div","stats");
+  st.innerHTML="<span>Stufe</span><span>"+(state.level===2?"▲ Dreieck":"● Kreis")+"</span><span>Lösungswort</span><span>FORSCHER</span><span>Fehlversuche</span><span>"+state.wrong+"</span><span>Zeit</span><span>ca. "+min+" Min.</span>";
+  page.appendChild(st);
+  const row=el("div","row");
+  row.appendChild(btn("btn primary","Fertige Karte ansehen",hide));
+  row.appendChild(btn("btn","Noch einmal spielen",()=>{
+    state.level=null;state.solved={};state.order=[];state.wrong=0;state.done=false;state.revealed={};
+    car.x=base[0];car.y=base[1];car.boat=true;stations.forEach(s=>s.armed=true);baseArmed=false;renderBook();openStart();}));
+  page.appendChild(row);show();
+}
+
+/* =========================================================
+   9) START
+   ========================================================= */
+buildWorld();
+miniBase.getContext("2d").drawImage(world,0,0,W,H,0,0,MW,MH);
+const hot=window.claude&&window.claude.hot;
+if(hot&&hot.snapshot){try{hot.snapshot(()=>({state:JSON.parse(JSON.stringify(state)),car:{x:car.x,y:car.y}}));}catch(_){}}
+function boot(data){
+  resize();
+  if(data&&data.state&&data.state.level){
+    Object.assign(state,data.state);car.x=data.car.x;car.y=data.car.y;car.boat=!isLandPx(car.x,car.y);
+    stations.forEach(s=>{if(Math.hypot(s.x-car.x,s.y-car.y)<46)s.armed=false;});
+    renderBook();if(state.done)openEnd();else hide();
+  }else{renderBook();openStart();}
+  requestAnimationFrame(loop);
+}
+if(document.fonts&&document.fonts.ready){document.fonts.ready.then(()=>{});}
+if(hot&&hot.ready)hot.ready(boot);else boot(hot&&hot.data?hot.data:{});
+})();
+</script>
+
+</body>
+</html>
